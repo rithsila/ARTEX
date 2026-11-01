@@ -32,7 +32,8 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
   // Client-side auth gate — replaces the Next proxy/middleware that static export
   // disables. No token → bounce to /login; render nothing until confirmed so no
   // protected UI (or its API calls) flashes for a logged-out visitor.
-  const [authed, setAuthed] = React.useState(false);
+  const isMock = process.env.NEXT_PUBLIC_MOCK === "1";
+  const [authed, setAuthed] = React.useState(isMock);
   React.useEffect(() => {
     if (auth.getToken()) {
       setAuthed(true);

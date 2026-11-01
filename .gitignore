@@ -33,6 +33,7 @@ Thumbs.db
 
 # claude code local state
 .claude/
+.serena/
 
 # 内嵌前端的单二进制产物
 /artex

@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -49,7 +50,9 @@ func applySchemaWithRetry(ctx context.Context, execer schemaExecer, sleep func(t
 			if !isPostgresDeadlock(err) || attempt >= len(schemaDeadlockRetryDelays) {
 				return err
 			}
-			sleep(schemaDeadlockRetryDelays[attempt])
+			delay := schemaDeadlockRetryDelays[attempt]
+			log.Printf("[db] schema migration deadlock detected, retrying in %v (attempt %d/%d)...", delay, attempt+1, len(schemaDeadlockRetryDelays))
+			sleep(delay)
 			continue
 		}
 		return nil
@@ -65,12 +68,16 @@ func withSchemaMigrationLock(ctx context.Context, sqlDB *sql.DB, action func(*sq
 		return err
 	}
 	defer conn.Close()
+	log.Printf("[db] acquiring schema migration advisory lock (%d)...", schemaMigrationLockKey)
 	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, schemaMigrationLockKey); err != nil {
 		return fmt.Errorf("advisory lock: %w", err)
 	}
+	log.Printf("[db] acquired schema migration advisory lock (%d)", schemaMigrationLockKey)
 	defer func() {
 		if _, unlockErr := conn.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1)`, schemaMigrationLockKey); unlockErr != nil && err == nil {
 			err = fmt.Errorf("advisory unlock: %w", unlockErr)
+		} else if unlockErr == nil {
+			log.Printf("[db] released schema migration advisory lock (%d)", schemaMigrationLockKey)
 		}
 	}()
 	return action(conn)
@@ -152,14 +159,17 @@ func Open(dsn string) (*DB, error) {
 		sqlDB.Close()
 		return nil, fmt.Errorf("ping postgres (%s): %w", config.Redact(dsn), err)
 	}
+	log.Printf("[db] connected to PostgreSQL (%s)", config.Redact(dsn))
 	d := &DB{sqlDB}
 	// pgx runs multi-statement Exec via the simple protocol when there are no args.
 	// Keep the dedicated lock connection checked out until both DDL and seeding
 	// finish so concurrent application instances cannot initialize out of order.
 	err = withSchemaMigrationLock(context.Background(), sqlDB, func(conn *sql.Conn) error {
+		log.Printf("[db] applying database schema migrations...")
 		if err := applySchemaWithRetry(context.Background(), conn, time.Sleep); err != nil {
 			return fmt.Errorf("apply schema: %w", err)
 		}
+		log.Printf("[db] schema migrations applied successfully")
 		if err := d.seedBuiltins(); err != nil {
 			return fmt.Errorf("seed builtins: %w", err)
 		}

@@ -1,27 +1,26 @@
 @echo off
-rem 控制台切 UTF-8，否则本文件里的中文在 GBK 终端下是乱码。
+rem Switch console code page to UTF-8.
 chcp 65001 >nul 2>&1
-rem ARTEX 守护启动脚本（Windows）
+rem ARTEX supervisor launch script (Windows)
 rem
-rem 用法：
-rem   start.bat                  前台运行（Ctrl-C 停止）
-rem   start.bat -addr :9000      额外参数原样透传给 artex
+rem Usage:
+rem   start.bat                  Run in foreground (press Ctrl-C to stop)
+rem   start.bat -addr :9000      Pass extra arguments directly to artex
 rem
-rem 它只做一件事：把 artex.exe 跑起来，进程退出后按退出码决定要不要再拉起。
+rem Purpose: launches artex.exe and decides whether to restart based on exit code:
+rem   0      Clean shutdown by user   -> Exit loop
+rem   75     Restart requested        -> Restart immediately (after selfupdate or rollback)
+rem   other  Crash or abnormal exit  -> Backoff and restart (1->2->4... up to 60s)
 rem
-rem   0      用户正常停止     -> 退出循环
-rem   75     程序请求重启     -> 立刻重跑（页面点了"一键更新"或"回滚"）
-rem   其他   崩溃             -> 退避后重跑（1->2->4…最多 60 秒）
-rem
-rem 下载、SHA256 校验、换装都不在这里，全部由 artex 自己在启动时完成
-rem （selfupdate 包）。脚本保持傻瓜化，详见 start.sh 顶部的说明。
+rem Note: Download, SHA256 validation, and binary replacement are handled inside Go
+rem (selfupdate package) on startup. See start.sh for details.
 
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 set "BIN=artex.exe"
 if not exist "%BIN%" (
-	echo [artex] 找不到可执行文件 %BIN% 1>&2
+	echo [artex] binary not found or not executable: %BIN% 1>&2
 	exit /b 1
 )
 
@@ -34,19 +33,19 @@ set /a delay=1
 set "code=!ERRORLEVEL!"
 
 if "!code!"=="0" (
-	echo [artex] 正常退出
+	echo [artex] clean shutdown
 	exit /b 0
 )
 
 if "!code!"=="%RESTART_CODE%" (
-	rem 更新/回滚已就绪：重跑后 artex 会在启动时完成换装。
-	echo [artex] 请求重启（应用新版本）…
+	rem Update or rollback staged: restarting artex applies the change on boot.
+	echo [artex] restart requested (applying new version)...
 	set /a delay=1
 	goto loop
 )
 
-echo [artex] 异常退出 ^(code=!code!^)，!delay!s 后重启 1>&2
-rem timeout 在被重定向的控制台里会失败，用 ping 兜底（延时 N 秒需要 N+1 次）。
+echo [artex] abnormal exit ^(code=!code!^), restarting in !delay!s 1>&2
+rem timeout fails in redirected console, use ping fallback.
 set /a pings=!delay!+1
 ping -n !pings! 127.0.0.1 >nul 2>&1
 set /a delay=!delay!*2

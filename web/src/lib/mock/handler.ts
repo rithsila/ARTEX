@@ -66,20 +66,26 @@ interface MockBindingSeed {
 // 每条漏洞预置的流量证据(finding id → 绑定的抓包)。选取与漏洞语义对应的请求,
 // 让 demo 详情页的「关联流量」区块看起来真实。
 const mockFindingTrafficSeeds: Record<string, MockBindingSeed[]> = {
-  "f-1": [{ traffic_id: "x-2", role: "proof", note: "q 参数注入 payload，响应回显 MSSQL 报错。" }],
+  "f-1": [
+    {
+      traffic_id: "x-2",
+      role: "proof",
+      note: "Injected payload into param q; response reflected MSSQL database error.",
+    },
+  ],
   "f-2": [
-    { traffic_id: "x-8", role: "baseline", note: "本人订单 id=1001，作为正常对照。" },
-    { traffic_id: "x-9", role: "proof", note: "改 id=1002 越权读到他人订单。" },
+    { traffic_id: "x-8", role: "baseline", note: "Own order id=1001 used as baseline control." },
+    { traffic_id: "x-9", role: "proof", note: "Modified id=1002; successfully read another customer order." },
   ],
   "f-12": [
-    { traffic_id: "x-15", role: "proof", note: "Fastjson @type JNDI payload，触发回连。" },
-    { traffic_id: "x-16", role: "verification", note: "二次请求确认命令执行落地。" },
+    { traffic_id: "x-15", role: "proof", note: "Fastjson @type JNDI payload triggered outbound callback." },
+    { traffic_id: "x-16", role: "verification", note: "Follow-up request confirmed successful command execution." },
   ],
   "f-15": [
-    { traffic_id: "x-17", role: "baseline", note: "Jenkins Script Console 未授权可达。" },
-    { traffic_id: "x-18", role: "proof", note: "scriptText 执行 Groovy 命令返回 SYSTEM。" },
+    { traffic_id: "x-17", role: "baseline", note: "Jenkins Script Console reached without authentication." },
+    { traffic_id: "x-18", role: "proof", note: "scriptText executed Groovy command, returned SYSTEM." },
   ],
-  "f-17": [{ traffic_id: "x-19", role: "proof", note: "psexec 以 svc_deploy 登录域控 DC01。" }],
+  "f-17": [{ traffic_id: "x-19", role: "proof", note: "psexec logged into DC01 with svc_deploy." }],
 };
 
 // demo 用固定报文正文,避免详情页 Request/Response 空白。
@@ -178,9 +184,9 @@ function advanceMockRetests() {
     if (Date.now() - Date.parse(retest.created_at) < 15000) continue;
     retest.status = "completed";
     retest.verdict = "inconclusive";
-    retest.summary = "演示环境未执行真实验证，无法确认漏洞当前状态。";
+    retest.summary = "Demo mode: verification not executed against live target; current state inconclusive.";
     retest.evidence =
-      "### 演示记录\n\n已关联原漏洞。此环境未连接真实 Agent，也未向目标发送请求；请在实际部署中执行复测。";
+      "### Demo Record\n\nLinked to original finding. Live agents not connected in demo mode; run retest in production environment.";
     retest.finished_at = new Date().toISOString();
     mockRetestMessages[retest.conversation_id].push({
       seq: 3,
@@ -292,7 +298,7 @@ function mockArchiveTask(taskID: string): MockTaskArchive {
     id: nextMockTaskArchiveID++,
     task_id: numericTaskID,
     state: "archive_queued",
-    phase: "等待归档",
+    phase: "Awaiting Archive",
     progress: 0,
     format_version: 1,
     original_size: 0,
@@ -398,14 +404,14 @@ function mockDeleteArchive(archive: MockTaskArchive): void {
   );
   if (dependent) throw new Error(`归档仍被任务 #${dependent.task_id} 依赖，无法永久删除`);
   archive.state = "delete_queued";
-  archive.phase = "等待永久删除";
+  archive.phase = "Awaiting Permanent Deletion";
   archive.progress = 0;
   archive.error = undefined;
   archive.updated_at = new Date().toISOString();
   setTimeout(() => {
     if (archive.state !== "delete_queued") return;
     archive.state = "deleting";
-    archive.phase = "删除归档包";
+    archive.phase = "Deleting Archive Package";
     archive.progress = 70;
   }, 100);
   setTimeout(() => {
@@ -625,7 +631,7 @@ function mockBuildAssetTree(list: (typeof mockFindings)[number][]): MockAssetTre
     }
   }
 
-  // 企业层:只给确实有归属的顶层资产(根域名 / IP / 应用)补,没有归属就自己是顶层。
+  // Company层:只给确实有归属的顶层资产(根域名 / IP / 应用)补,没有归属就自己是顶层。
   for (const node of [...nodes.values()]) {
     if (node.parent || !node.company_id) continue;
     if (!["root_domain", "ip", "app"].includes(node.kind)) continue;
@@ -655,7 +661,7 @@ function mockBuildAssetTree(list: (typeof mockFindings)[number][]): MockAssetTre
   const unassigned: MockAssetTreeNode = {
     key: UNASSIGNED_ASSET,
     kind: "none",
-    label: "未关联资产",
+    label: "Unlinked Assets",
     self: 0,
     total: 0,
     critical: 0,
@@ -802,7 +808,7 @@ function mockScopeRows(
 function mockProfileResolution(profileID: number | undefined, source: TaskLLMResolution["source"]): TaskLLMResolution {
   const profile = D.llmProfiles.find((item) => Number(item.id) === profileID);
   if (!profile) {
-    return { name: "", format: "", model: "", source, available: false, reason: "LLM 配置不存在" };
+    return { name: "", format: "", model: "", source, available: false, reason: "LLM profile does not exist" };
   }
   return {
     profile_id: Number(profile.id),
@@ -811,12 +817,12 @@ function mockProfileResolution(profileID: number | undefined, source: TaskLLMRes
     model: profile.model,
     source,
     available: Boolean(profile.api_key_hint),
-    reason: profile.api_key_hint ? undefined : "LLM 配置未设置 API Key",
+    reason: profile.api_key_hint ? undefined : "LLM profile missing API key",
   };
 }
 
 // Mirrors the backend precedence in server/task_resolution.go:
-// Agent 绑定 → 任务 LLM 配置链 → 全局配置 → 环境配置。
+// Agent 绑定 → 任务 LLM 配置链 → Global Config → 环境配置。
 function mockRoleResolution(task: Task, agentKey: "mainagent" | "planner" | "worker"): TaskLLMResolution {
   const agent = D.agents.find((item) => item.key === agentKey);
   if (agent?.llm_profile_id) {
@@ -831,7 +837,7 @@ function mockRoleResolution(task: Task, agentKey: "mainagent" | "planner" | "wor
         model: "",
         source: "task_chain",
         available: false,
-        reason: "任务 LLM 配置链额度已耗尽",
+        reason: "Task LLM profile chain quota exhausted",
       };
     }
     return mockProfileResolution(task.active_llm_profile_id, "task_chain");
@@ -839,7 +845,7 @@ function mockRoleResolution(task: Task, agentKey: "mainagent" | "planner" | "wor
   const globalProfile = D.llmProfiles.find((item) => item.is_default);
   if (globalProfile) return mockProfileResolution(Number(globalProfile.id), "global_profile");
   return {
-    name: "全局配置",
+    name: "Global Config",
     format: D.llmConfig.provider,
     model: D.llmConfig.model,
     source: "environment",
@@ -1022,14 +1028,19 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
         label: finding.name || finding.vulnclass,
         description: `${finding.severity} · ${finding.summary}`,
       })),
-      ...D.companies.map((company) => ({ kind: "company", id: company.id, label: company.name, description: "企业" })),
+      ...D.companies.map((company) => ({
+        kind: "company",
+        id: company.id,
+        label: company.name,
+        description: "Company",
+      })),
       ...D.assets.map((asset) => ({
         kind: asset.type,
         id: asset.id,
         label:
           asset.type === "endpoint"
             ? `${asset.method || "GET"} ${asset.url}`
-            : asset.app_name || asset.url || asset.domain || asset.ip || asset.bundle_id || `资产 #${asset.id}`,
+            : asset.app_name || asset.url || asset.domain || asset.ip || asset.bundle_id || `Asset #${asset.id}`,
         description: [asset.type, asset.page_title, asset.service_name, asset.bundle_id, asset.ip]
           .filter(Boolean)
           .join(" · "),
@@ -1084,18 +1095,18 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   }
   if (seg[0] === "task-archives" && seg.length === 2 && m === "GET") {
     const archive = mockTaskArchives.find((item) => item.id === Number(seg[1]));
-    if (!archive) throw new Error("归档不存在");
+    if (!archive) throw new Error("Archive not found");
     return publicMockTaskArchive(archive);
   }
   if (seg[0] === "task-archives" && seg[2] === "restore" && seg.length === 3 && m === "POST") {
     const archive = mockTaskArchives.find((item) => item.id === Number(seg[1]));
-    if (!archive) throw new Error("归档不存在");
+    if (!archive) throw new Error("Archive not found");
     mockRestoreArchive(archive);
     return publicMockTaskArchive(archive);
   }
   if (seg[0] === "task-archives" && seg.length === 2 && m === "DELETE") {
     const archive = mockTaskArchives.find((item) => item.id === Number(seg[1]));
-    if (!archive) throw new Error("归档不存在");
+    if (!archive) throw new Error("Archive not found");
     mockDeleteArchive(archive);
     return publicMockTaskArchive(archive);
   }
@@ -1103,7 +1114,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     const ids = bodyIDs(b.archive_ids).map(Number);
     const items = ids.map<ArchiveBatchItem>((id) => {
       const archive = mockTaskArchives.find((item) => item.id === id);
-      if (!archive) return { id: String(id), archive_id: id, ok: false, queued: false, error: "归档不存在" };
+      if (!archive) return { id: String(id), archive_id: id, ok: false, queued: false, error: "Archive not found" };
       try {
         mockRestoreArchive(archive);
         return { id: String(id), archive_id: id, ok: true, queued: true };
@@ -1117,7 +1128,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     const ids = bodyIDs(b.archive_ids).map(Number);
     const items = ids.map<ArchiveBatchItem>((id) => {
       const archive = mockTaskArchives.find((item) => item.id === id);
-      if (!archive) return { id: String(id), archive_id: id, ok: false, queued: false, error: "归档不存在" };
+      if (!archive) return { id: String(id), archive_id: id, ok: false, queued: false, error: "Archive not found" };
       try {
         mockDeleteArchive(archive);
         return { id: String(id), archive_id: id, ok: true, queued: true };
@@ -1174,17 +1185,17 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     const sourceTaskIDs = [...((b.source_task_ids as string[] | undefined) ?? [])];
     const companyIDs = [...new Set((b.company_ids as number[] | undefined) ?? [])];
     if (companyIDs.some((companyID) => !mockCompanies.some((company) => company.id === companyID))) {
-      throw new Error("关联企业不存在或无效");
+      throw new Error("关联Company does not exist或无效");
     }
     const categoryID = typeof b.category_id === "number" ? b.category_id : undefined;
     const category = categoryID === undefined ? undefined : mockTaskCategories.find((item) => item.id === categoryID);
-    if (categoryID !== undefined && !category) throw new Error("任务分类不存在");
+    if (categoryID !== undefined && !category) throw new Error("Task category does not exist");
     const created: Task = {
       id,
       name: String(b.name ?? ""),
       category_id: category?.id,
       category_name: category?.name,
-      description: String(b.description ?? "新任务"),
+      description: String(b.description ?? "New Task"),
       goal: String(b.goal ?? ""),
       status: "created",
       created_at: now.toISOString(),
@@ -1214,7 +1225,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
       const company = mockCompanies.find((candidate) => candidate.id === asset.company_id);
       setMockTaskAssetSource(id, asset.id, {
         task_source: "company",
-        task_source_summary: `任务创建时关联企业：${company?.name ?? `#${asset.company_id}`}`,
+        task_source_summary: `任务创建时关联Company：${company?.name ?? `#${asset.company_id}`}`,
         task_source_node_id: undefined,
       });
     }
@@ -1226,9 +1237,9 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/task-categories" && m === "GET") return { categories: mockTaskCategorySnapshot() };
   if (path === "/task-categories" && m === "POST") {
     const name = normalizedTemplateName(b.name);
-    if (!name) throw new Error("分类名称不能为空");
+    if (!name) throw new Error("Category name cannot be empty");
     if (mockTaskCategories.some((category) => category.name.toLowerCase() === name.toLowerCase())) {
-      throw new Error("分类名称已存在");
+      throw new Error("Category name already exists");
     }
     const now = new Date().toISOString();
     const category: TaskCategory = {
@@ -1243,11 +1254,11 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   }
   if (seg[0] === "task-categories" && seg.length === 2 && m === "PATCH") {
     const category = mockTaskCategories.find((item) => item.id === Number(seg[1]));
-    if (!category) throw new Error("任务分类不存在");
+    if (!category) throw new Error("Task category does not exist");
     const name = normalizedTemplateName(b.name);
-    if (!name) throw new Error("分类名称不能为空");
+    if (!name) throw new Error("Category name cannot be empty");
     if (mockTaskCategories.some((item) => item.id !== category.id && item.name.toLowerCase() === name.toLowerCase())) {
-      throw new Error("分类名称已存在");
+      throw new Error("Category name already exists");
     }
     category.name = name;
     category.updated_at = new Date().toISOString();
@@ -1259,7 +1270,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (seg[0] === "task-categories" && seg.length === 2 && m === "DELETE") {
     const categoryID = Number(seg[1]);
     const index = mockTaskCategories.findIndex((item) => item.id === categoryID);
-    if (index < 0) throw new Error("任务分类不存在");
+    if (index < 0) throw new Error("Task category does not exist");
     mockTaskCategories.splice(index, 1);
     for (const task of mockTasks) {
       if (task.category_id !== categoryID) continue;
@@ -1274,7 +1285,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     if (taskIDs.length === 0 || taskIDs.length > 100) throw new Error("task_ids 数量必须为 1-100");
     const categoryID = typeof b.category_id === "number" ? b.category_id : undefined;
     const category = categoryID === undefined ? undefined : mockTaskCategories.find((item) => item.id === categoryID);
-    if (categoryID !== undefined && !category) throw new Error("任务分类不存在");
+    if (categoryID !== undefined && !category) throw new Error("Task category does not exist");
     const items = taskIDs.map((id) => {
       const task = mockTasks.find((item) => item.id === id);
       if (!task) return { id, ok: false, error: "task not found" };
@@ -1292,7 +1303,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     if (!task) throw new Error("任务不存在");
     const categoryID = typeof b.category_id === "number" ? b.category_id : undefined;
     const category = categoryID === undefined ? undefined : mockTaskCategories.find((item) => item.id === categoryID);
-    if (categoryID !== undefined && !category) throw new Error("任务分类不存在");
+    if (categoryID !== undefined && !category) throw new Error("Task category does not exist");
     task.category_id = category?.id;
     task.category_name = category?.name;
     return task;
@@ -1655,7 +1666,8 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
       const rules: CompanyScopeRule[] = b.scope.map((candidate, index) => {
         if (typeof candidate === "string") {
           const issue = classifyCompanyScopeLine(candidate, index + 1);
-          if (!issue.rule || issue.error) throw new Error(`第 ${index + 1} 条范围无效：${issue.error ?? "无法识别"}`);
+          if (!issue.rule || issue.error)
+            throw new Error(`第 ${index + 1} 条范围无效：${issue.error ?? "Unrecognized"}`);
           return issue.rule;
         }
         const item = candidate as { kind?: unknown; value?: unknown };
@@ -1664,8 +1676,8 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
           item?.kind && isCompanyScopeKind(item.kind)
             ? { kind: item.kind, value }
             : classifyCompanyScopeLine(value, index + 1).rule;
-        const error = rule ? companyScopeRuleError(rule) : "无法识别";
-        if (!rule || error) throw new Error(`第 ${index + 1} 条范围无效：${error}`);
+        const error = rule ? companyScopeRuleError(rule) : "Unrecognized";
+        if (!rule || error) throw new Error(`Rule #${index + 1} invalid: ${error}`);
         return rule;
       });
       const mutation: TaskAssetScopeMutation = {
@@ -1686,7 +1698,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
           task_id: numericTaskID,
           kind: rule.kind === "domain" ? "root_domain" : rule.kind,
           source: "manual",
-          reason: "用户在测试资产页手工新增",
+          reason: "Manually added by user in Asset Target view",
         };
         if (rule.kind === "domain") scope.domain = normalized;
         else if (rule.kind === "ip") scope.net = `${normalized}/${normalized.includes(":") ? 128 : 32}`;
@@ -1726,7 +1738,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
         }
         setMockTaskAssetSource(seg[1], asset.id, {
           task_source: "manual",
-          task_source_summary: "用户在测试资产页手工新增",
+          task_source_summary: "Manually added by user in Asset Target view",
           task_source_node_id: undefined,
         });
       }
@@ -1735,9 +1747,10 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     }
     const ids = [...new Set(Array.isArray(b.asset_ids) ? b.asset_ids.map(Number) : [])];
     const sourceSummary = String(b.source_summary ?? "").trim();
-    if (ids.length === 0 || ids.length > 100 || !sourceSummary) throw new Error("请选择资产并填写来源说明");
+    if (ids.length === 0 || ids.length > 100 || !sourceSummary)
+      throw new Error("Please select an asset and provide source description");
     const requestedAssets = ids.map((id) => mockAssets.find((asset) => asset.id === id));
-    if (requestedAssets.some((asset) => !asset)) throw new Error("资产不存在");
+    if (requestedAssets.some((asset) => !asset)) throw new Error("Asset does not exist");
     const mutation: TaskAssetMutation = { requested: ids.length, attached: 0, existing: 0 };
     for (const asset of requestedAssets) {
       if (!asset) continue;
@@ -1757,7 +1770,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (seg[0] === "tasks" && seg[2] === "assets" && seg.length === 4 && m === "DELETE") {
     const numericTaskID = mockTaskAssetID(seg[1]);
     const asset = mockAssets.find((item) => item.id === Number(seg[3]));
-    if (numericTaskID === undefined || !asset) throw new Error("任务或资产不存在");
+    if (numericTaskID === undefined || !asset) throw new Error("任务或Asset does not exist");
     if (!asset.task_ids.includes(numericTaskID)) throw new Error("资产未关联当前任务");
     asset.task_ids = asset.task_ids.filter((id) => id !== numericTaskID);
     deleteMockTaskAssetSources(seg[1], asset.id);
@@ -1799,9 +1812,9 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/companies" && m === "GET") return structuredClone(mockCompanies);
   if (path === "/companies" && m === "POST") {
     const name = String(b.name ?? "").trim();
-    if (!name) throw new Error("企业名称不能为空");
+    if (!name) throw new Error("Company name cannot be empty");
     if (mockCompanies.some((company) => company.name.toLowerCase() === name.toLowerCase())) {
-      throw new Error("企业已存在");
+      throw new Error("Company already exists");
     }
     const id = mockCompanies.reduce((max, company) => Math.max(max, company.id), 0) + 1;
     const scopeResult = mockScopeRows(id, b.scope);
@@ -1817,17 +1830,18 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   }
   if (seg[0] === "companies" && seg[2] === "scope" && m === "POST") {
     const company = mockCompanies.find((item) => item.id === Number(seg[1]));
-    if (!company) throw new Error("企业不存在");
+    if (!company) throw new Error("Company does not exist");
     const reset = b.reset === true;
     const scopeResult = mockScopeRows(company.id, b.scope, reset ? [] : (company.scope ?? []));
-    if (reset && scopeResult.invalid > 0) throw new Error("企业范围包含无效规则，未覆盖原有范围");
+    if (reset && scopeResult.invalid > 0)
+      throw new Error("Company scope contains invalid rules; existing scope unchanged");
     company.scope = reset ? scopeResult.rows : [...(company.scope ?? []), ...scopeResult.rows];
     return { added: scopeResult.rows.length, skipped: scopeResult.skipped, invalid: scopeResult.invalid };
   }
   if (seg[0] === "companies" && seg.length === 2 && m === "DELETE") {
     const id = Number(seg[1]);
     const index = mockCompanies.findIndex((item) => item.id === id);
-    if (index < 0) throw new Error("企业不存在");
+    if (index < 0) throw new Error("Company does not exist");
     mockCompanies.splice(index, 1);
     let assetsDeleted = 0;
     for (let assetIndex = mockAssets.length - 1; assetIndex >= 0; assetIndex--) {
@@ -1932,7 +1946,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   }
   if (seg[0] === "exploration" && seg[1] === "findings" && seg[3] === "retests") {
     const finding = mockFindings.find((item) => item.id === seg[2]);
-    if (!finding) throw new Error("漏洞不存在");
+    if (!finding) throw new Error("Finding does not exist");
     const findingID = D.findings.findIndex((item) => item.id === finding.id) + 1;
     if (m === "GET") return { retests: structuredClone(mockRetests.filter((item) => item.finding_id === findingID)) };
     if (m === "POST") {
@@ -1971,7 +1985,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
           worker: "retester",
           ts: now,
           kind: "user",
-          summary: `请复测漏洞 #${finding.id}`,
+          summary: `Please retest finding #${finding.id}`,
           detail: retest.notes,
         },
         {
@@ -1979,8 +1993,8 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
           worker: "retester",
           ts: now,
           kind: "text",
-          summary: "演示复测进行中（未向目标发送请求）",
-          detail: "演示复测进行中（未向目标发送请求）",
+          summary: "Demo retest in progress (no traffic sent to target)",
+          detail: "Demo retest in progress (no traffic sent to target)",
         },
       ];
       return { retest: structuredClone(retest), created: true };
@@ -2006,7 +2020,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   // seg = ["exploration","findings",<id>,"traffic", ...]
   if (seg[0] === "exploration" && seg[1] === "findings" && seg[3] === "traffic") {
     const findingID = seg[2];
-    if (!mockFindings.some((item) => item.id === findingID)) throw new Error("漏洞不存在");
+    if (!mockFindings.some((item) => item.id === findingID)) throw new Error("Finding does not exist");
     const bindings = mockTrafficBindings(findingID);
     const bumpVersion = () => {
       mockFindingTrafficVersion[findingID] = (mockFindingTrafficVersion[findingID] ?? 1) + 1;
@@ -2015,7 +2029,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     // 单条报文详情:GET /traffic/{binding_id}
     if (seg.length === 5 && seg[4] !== "order" && m === "GET") {
       const binding = bindings.find((item) => item.id === seg[4]);
-      if (!binding) throw new Error("证据不存在");
+      if (!binding) throw new Error("Evidence does not exist");
       const body = mockEvidenceBodies[binding.snapshot.source_traffic_id] ?? { req: "", resp: "" };
       return {
         binding: structuredClone(binding),
@@ -2026,7 +2040,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     // 报文正文分页:GET /traffic/{binding_id}/body —— demo 正文不截断,直接返回空续页。
     if (seg.length === 6 && seg[5] === "body" && m === "GET") {
       const binding = bindings.find((item) => item.id === seg[4]);
-      if (!binding) throw new Error("证据不存在");
+      if (!binding) throw new Error("Evidence does not exist");
       const body = mockEvidenceBodies[binding.snapshot.source_traffic_id] ?? { req: "", resp: "" };
       const side = q.get("side") === "request" ? body.req : body.resp;
       return mockEvidencePreview(side);
@@ -2060,7 +2074,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     // 编辑说明 / 解绑:PATCH|DELETE /traffic/{binding_id}
     if (seg.length === 5 && (m === "PATCH" || m === "DELETE")) {
       const index = bindings.findIndex((item) => item.id === seg[4]);
-      if (index < 0) throw new Error("证据不存在");
+      if (index < 0) throw new Error("Evidence does not exist");
       if (m === "DELETE") {
         bindings.splice(index, 1);
       } else {
@@ -2223,7 +2237,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/settings/web-search/test") return { ok: true, count: 5, backend: D.settings.web_search_backend };
   if (path === "/settings/python/detect") return { python_interpreter: "/usr/bin/python3" };
   if (path === "/chat")
-    return { reply: "（demo）我已把该建议注入为一条高优意图，work agent 会尽快执行。", mode: "hint" };
+    return { reply: "(demo) Injected this recommendation as a high-priority intent for work agent.", mode: "hint" };
   if (path === "/gc") return { removed: 0 };
 
   // ── 工具执行历史 ──
@@ -2301,7 +2315,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   }
   if (path === "/conversations" && m === "POST") {
     const now = new Date().toISOString();
-    const title = String(b.title ?? "").trim() || "新对话";
+    const title = String(b.title ?? "").trim() || "New Chat";
     const conversation: Conversation = {
       id: mockConversations.reduce((max, item) => Math.max(max, item.id), 0) + 1,
       agent_key: String(b.agent_key ?? "mainagent"),
@@ -2369,7 +2383,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   // ── tools ──
   if (path === "/tools" && m === "GET") return { tools: D.tools };
   if (path === "/tools/custom" && m === "POST") return { key: String(b.key ?? "custom-tool") };
-  if (path === "/tools/custom/test") return { output: "（demo）工具执行输出示例。", is_error: false };
+  if (path === "/tools/custom/test") return { output: "(demo) Sample tool execution output.", is_error: false };
 
   // ── mcp ──
   if (path === "/mcp" && m === "GET") return { servers: D.mcpServers };
@@ -2392,7 +2406,7 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/skills" && m === "POST") return { name: String(b.name ?? "new-skill") };
   if (seg[0] === "skills" && seg[2] === "files" && seg.length === 3) return { files: ["SKILL.md"] };
   if (seg[0] === "skills" && seg[2] === "files" && seg.length >= 4)
-    return { content: "# SKILL.md\n\n（demo）这是该 skill 的说明文件示例。", file: seg.slice(3).join("/") };
+    return { content: "# SKILL.md\n\n(demo) Sample skill documentation.", file: seg.slice(3).join("/") };
 
   // ── visibility ──
   if (seg[0] === "visibility" && m === "GET") return { agents: [] };
@@ -2406,22 +2420,22 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (seg[0] === "intercept" && seg[1] === "pending" && seg[3] === "decide") {
     const id = Number(seg[2]);
     const row = mockInterceptHistory.find((r) => r.id === id) ?? mockInterceptPending.find((r) => r.id === id);
-    if (row?.status !== "pending") throw new Error("审批已处理或不存在，请刷新记录");
-    if (b.decision !== "allowed" && b.decision !== "denied") throw new Error("无效审批动作");
+    if (row?.status !== "pending") throw new Error("Approval already processed or not found, please refresh");
+    if (b.decision !== "allowed" && b.decision !== "denied") throw new Error("Invalid approval action");
     row.status = b.decision;
     row.decided_at = new Date().toISOString();
     const detail = mockInterceptDetails[id];
     if (detail) {
       detail.effective_action = b.decision === "allowed" ? "allow" : "deny";
-      detail.decision_reason = b.decision === "allowed" ? "人工允许执行" : "人工拒绝执行";
+      detail.decision_reason = b.decision === "allowed" ? "Manually approved execution" : "Manually rejected execution";
       detail.execution_status = b.decision === "allowed" ? "unknown" : "not_executed";
-      detail.output = b.decision === "allowed" ? "演示模式未执行工具。" : "";
+      detail.output = b.decision === "allowed" ? "Demo mode: tool execution skipped." : "";
     }
     return { ok: true };
   }
   if (seg[0] === "intercept" && seg[1] === "history" && seg.length === 3) {
     const row = mockInterceptHistory.find((r) => r.id === Number(seg[2]));
-    if (!row) throw new Error("审批记录不存在");
+    if (!row) throw new Error("Approval record does not exist");
     return { ...row, audit: mockInterceptDetails[row.id] ?? null };
   }
   if (seg[0] === "intercept" && seg[1] === "pending" && seg.length === 3 && m === "GET")
@@ -2429,11 +2443,13 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/intercept/history" || (seg[0] === "intercept" && seg[1] === "task")) {
     const status = q.get("status") || "";
     const decisionSource = q.get("decision_source") || "";
-    if (status && !["pending", "allowed", "denied", "timeout"].includes(status)) throw new Error("无效审批状态");
-    if (decisionSource && !["model", "rule", "unknown"].includes(decisionSource)) throw new Error("无效判定来源");
+    if (status && !["pending", "allowed", "denied", "timeout"].includes(status))
+      throw new Error("Invalid approval status");
+    if (decisionSource && !["model", "rule", "unknown"].includes(decisionSource))
+      throw new Error("Invalid decision source");
     const filtered = mockInterceptHistory.filter((row) => {
       const source =
-        row.decision_source || (row.rule_id ? "rule" : row.reason?.startsWith("[模型]") ? "model" : "unknown");
+        row.decision_source || (row.rule_id ? "rule" : row.reason?.startsWith("[Model]") ? "model" : "unknown");
       return (
         (seg[1] !== "task" || row.task_id === decodeURIComponent(seg[2])) &&
         (!status || row.status === status) &&
@@ -2474,11 +2490,39 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
       daily: [],
     };
 
+  // ── 通知配置(/notify) ──
+  if (path === "/notify/meta" && m === "GET") {
+    return {
+      kinds: [
+        { kind: "dingtalk", default_rate_per_min: 20, secret_keys: ["secret"] },
+        { kind: "feishu", default_rate_per_min: 20, secret_keys: ["secret"] },
+        { kind: "wecom", default_rate_per_min: 20, secret_keys: [] },
+        { kind: "webhook", default_rate_per_min: 60, secret_keys: ["secret", "authorization"] },
+        { kind: "telegram", default_rate_per_min: 30, secret_keys: ["bot_token"] },
+        { kind: "email", default_rate_per_min: 10, secret_keys: ["password"] },
+      ],
+      enabled: true,
+      public_base_url: "",
+      digest_interval_min: "10",
+      defaults: { digest_interval_min: 10 },
+      stats: {
+        channels: 0,
+        channels_on: 0,
+        pending: 0,
+        failed: 0,
+        sent_today: 0,
+        backlog_age_ms: 0,
+      },
+    };
+  }
+  if (path === "/notify/channels" && m === "GET") return { channels: [] };
+  if (path === "/notify/deliveries" && m === "GET") return { deliveries: [], total: 0 };
+
   // ── 旁路提问(/btw)：demo 无旁路会话 ──
   // 必须显式命中：路径以 s 结尾会被下面的读兜底判成集合返回 []，items 就成了 undefined。
   if (seg.at(-1) === "side-questions") {
     if (m === "GET") return { items: [], current: null, next_cursor: 0, snapshot: null };
-    if (m === "POST") throw new Error("演示模式不支持旁路提问");
+    if (m === "POST") throw new Error("Side-channel inquiries are not supported in demo mode");
   }
 
   // ── 写操作兜底：成功但不落库 ──

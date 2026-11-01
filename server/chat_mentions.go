@@ -17,10 +17,12 @@ const maxChatMentions = 10
 
 // The visible token survives drafts, uploads, retries and conversation history.
 // Labels are only for display: the server trusts only the type and numeric ID.
-var chatMentionPattern = regexp.MustCompile(`@\[(漏洞|资产|企业|接口|IP|应用|域名|子域名|服务)#([0-9]+)(?: [^\]\r\n]*)?\]`)
+var chatMentionPattern = regexp.MustCompile(`(?i)@\[(漏洞|资产|企业|接口|IP|应用|域名|子域名|服务|finding|asset|company|endpoint|api|app|domain|root_domain|subdomain|service)#([0-9]+)(?: [^\]\r\n]*)?\]`)
 var chatMentionKinds = map[string]string{
 	"漏洞": "finding", "资产": "asset", "企业": "company", "接口": "endpoint",
 	"IP": "ip", "应用": "app", "域名": "root_domain", "子域名": "subdomain", "服务": "service",
+	"finding": "finding", "asset": "asset", "company": "company", "endpoint": "endpoint", "api": "endpoint",
+	"ip": "ip", "app": "app", "domain": "root_domain", "root_domain": "root_domain", "subdomain": "subdomain", "service": "service",
 }
 
 type chatMentionRef struct {
@@ -39,9 +41,12 @@ func parseChatMentions(message string) ([]chatMentionRef, error) {
 	for _, m := range chatMentionPattern.FindAllStringSubmatch(message, -1) {
 		id, err := strconv.ParseInt(m[2], 10, 64)
 		if err != nil || id <= 0 {
-			return nil, &chatMentionInputError{"引用 ID 无效，请重新选择"}
+			return nil, &chatMentionInputError{"Invalid reference ID, please select again"}
 		}
 		kind := chatMentionKinds[m[1]]
+		if kind == "" {
+			kind = chatMentionKinds[strings.ToLower(m[1])]
+		}
 		key := kind + ":" + strconv.FormatInt(id, 10)
 		if seen[key] {
 			continue
@@ -49,7 +54,7 @@ func parseChatMentions(message string) ([]chatMentionRef, error) {
 		seen[key] = true
 		refs = append(refs, chatMentionRef{kind, id, m[1]})
 		if len(refs) > maxChatMentions {
-			return nil, &chatMentionInputError{"每条消息最多引用 10 条记录"}
+			return nil, &chatMentionInputError{"Each message can reference at most 10 items"}
 		}
 	}
 	return refs, nil

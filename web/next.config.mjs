@@ -14,7 +14,7 @@ const nextConfig = {
   // 允许从局域网 IP 访问 dev 资源（HMR），按需增删。
   // dev 阶段放开任意 IPv4 来源访问 /_next/* 与 HMR（局域网 IP 变动也不受影响）。
   // 注意：Next 出于安全禁止裸 "*"，需用分段通配；"*.*.*.*" 匹配任意 IPv4。
-  allowedDevOrigins: ["*.*.*.*"],
+  allowedDevOrigins: ["*.*.*.*", "artex.orca.localhost", "*.orca.localhost", "*.localhost", "localhost"],
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
@@ -31,9 +31,9 @@ const nextConfig = {
           images: { unoptimized: true },
         }
       : {
-          // 开发：把 /api/* 反代到 Go 后端（默认 :8787，可用 AUTOPENTEST_API 覆盖）。
+          // 开发：把 /api/* 反代到 Go 后端（默认 :8790，可用 AUTOPENTEST_API 覆盖）。
           async rewrites() {
-            const backend = process.env.AUTOPENTEST_API ?? "http://localhost:8787";
+            const backend = process.env.AUTOPENTEST_API ?? "http://localhost:8790";
             return [{ source: "/api/:path*", destination: `${backend}/api/:path*` }];
           },
         }),

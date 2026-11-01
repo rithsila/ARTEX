@@ -28,6 +28,14 @@ export const THEME_PRESET_OPTIONS = [
     },
   },
   {
+    label: "EV3R4S Phosphor",
+    value: "ev3r4s",
+    primary: {
+      light: "oklch(0.85 0.29 142)",
+      dark: "oklch(0.85 0.29 142)",
+    },
+  },
+  {
     label: "Soft Pop",
     value: "soft-pop",
     primary: {

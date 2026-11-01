@@ -65,9 +65,7 @@ export function MainContent({ children }: { children: ReactNode }) {
             <SearchDialog />
           </div>
           <div className="flex items-center gap-2">
-            {version && (
-              <span className="font-medium text-muted-foreground text-xs tabular-nums">版本 · {version}</span>
-            )}
+            {version && <span className="font-medium text-muted-foreground text-xs tabular-nums">v{version}</span>}
             <UpdateBadge />
             <LayoutControls />
             <ThemeSwitcher />
