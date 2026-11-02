@@ -13,6 +13,14 @@ import (
 )
 
 func TestLegacySSEClientDiscoverAndCall(t *testing.T) {
+	testLegacySSEClientDiscoverAndCall(t, false)
+}
+
+func TestLegacySSERelativeEndpointAfterRedirect(t *testing.T) {
+	testLegacySSEClientDiscoverAndCall(t, true)
+}
+
+func testLegacySSEClientDiscoverAndCall(t *testing.T, redirect bool) {
 	var mu sync.Mutex
 	var stream http.ResponseWriter
 	var flusher http.Flusher
@@ -20,8 +28,12 @@ func TestLegacySSEClientDiscoverAndCall(t *testing.T) {
 	messages := make(chan []byte, 8)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if redirect && r.URL.Path == "/sse" {
+			http.Redirect(w, r, "/nested/sse", http.StatusTemporaryRedirect)
+			return
+		}
 		switch r.URL.Path {
-		case "/sse":
+		case "/sse", "/nested/sse":
 			id := "test-session"
 			mu.Lock()
 			sessions[id] = true
@@ -29,7 +41,11 @@ func TestLegacySSEClientDiscoverAndCall(t *testing.T) {
 			mu.Unlock()
 			w.Header().Set("Content-Type", "text/event-stream")
 			w.Header().Set("Cache-Control", "no-cache")
-			fmt.Fprintf(w, "event: endpoint\ndata: %s/message?sessionId=%s\n\n", "http://"+r.Host, id)
+			if redirect {
+				fmt.Fprintf(w, "event: endpoint\ndata: message?sessionId=%s\n\n", id)
+			} else {
+				fmt.Fprintf(w, "event: endpoint\ndata: %s/message?sessionId=%s\n\n", "http://"+r.Host, id)
+			}
 			flusher.Flush()
 			for {
 				select {
@@ -40,7 +56,11 @@ func TestLegacySSEClientDiscoverAndCall(t *testing.T) {
 					return
 				}
 			}
-		case "/message":
+		case "/message", "/nested/message":
+			if redirect && r.URL.Path != "/nested/message" {
+				http.Error(w, "incorrect relative endpoint", http.StatusBadRequest)
+				return
+			}
 			mu.Lock()
 			knownSession := sessions["test-session"]
 			mu.Unlock()

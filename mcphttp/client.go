@@ -19,6 +19,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,6 +31,61 @@ import (
 
 const protocolVersion = "2025-06-18"
 const legacySSEProtocolVersion = "2024-11-05"
+
+// endpointOrigin rejects ambiguous or credential-bearing URLs and normalizes
+// default ports so explicit :80/:443 remain equivalent to their implicit form.
+func endpointOrigin(u *url.URL) (string, error) {
+	if u == nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" || u.User != nil || u.Opaque != "" {
+		return "", fmt.Errorf("MCP endpoint must be an HTTP(S) URL without userinfo")
+	}
+	port := u.Port()
+	if port == "" {
+		if strings.HasSuffix(u.Host, ":") {
+			return "", fmt.Errorf("invalid MCP endpoint port")
+		}
+		port = "80"
+		if u.Scheme == "https" {
+			port = "443"
+		}
+	}
+	n, err := strconv.Atoi(port)
+	if err != nil || n < 1 || n > 65535 {
+		return "", fmt.Errorf("invalid MCP endpoint port")
+	}
+	return u.Scheme + "://" + strings.ToLower(u.Hostname()) + ":" + strconv.Itoa(n), nil
+}
+
+func sameOrigin(base, target *url.URL) error {
+	a, err := endpointOrigin(base)
+	if err != nil {
+		return err
+	}
+	b, err := endpointOrigin(target)
+	if err != nil {
+		return err
+	}
+	if a != b {
+		return fmt.Errorf("cross-origin MCP endpoint rejected")
+	}
+	return nil
+}
+
+func restrictOrigin(hc *http.Client, rawURL string) error {
+	base, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid MCP endpoint URL")
+	}
+	if _, err := endpointOrigin(base); err != nil {
+		return err
+	}
+	hc.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("too many MCP redirects")
+		}
+		return sameOrigin(base, req.URL)
+	}
+	return nil
+}
 
 // ToolName mirrors mcp.ToolName so remote tools share the mcp__server__tool scheme.
 func ToolName(server, name string) string { return "mcp__" + server + "__" + name }
@@ -102,6 +158,9 @@ func New(ctx context.Context, server, url string, headers map[string]string, ins
 		return nil, err
 	}
 	hc := &http.Client{Timeout: 120 * time.Second}
+	if err := restrictOrigin(hc, url); err != nil {
+		return nil, err
+	}
 	if insecure {
 		hc.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	}
@@ -127,6 +186,9 @@ func NewSSE(ctx context.Context, server, sseURL string, headers map[string]strin
 		return nil, err
 	}
 	hc := &http.Client{} // the SSE stream is intentionally long-lived.
+	if err := restrictOrigin(hc, sseURL); err != nil {
+		return nil, err
+	}
 	if insecure {
 		hc.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	}
@@ -151,7 +213,7 @@ func NewSSE(ctx context.Context, server, sseURL string, headers map[string]strin
 		return nil, fmt.Errorf("mcp sse http %d: %s", resp.StatusCode, readSnippet(resp.Body))
 	}
 	reader := bufio.NewReader(resp.Body)
-	endpoint, err := readSSEEndpoint(reader, sseURL)
+	endpoint, err := readSSEEndpoint(reader, resp.Request.URL.String())
 	if err != nil {
 		resp.Body.Close()
 		cancel()
@@ -197,14 +259,15 @@ func readSSEEndpoint(r *bufio.Reader, base string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("mcp sse endpoint URL: %w", err)
 		}
-		if !u.IsAbs() {
-			b, err := url.Parse(base)
-			if err != nil {
-				return "", err
-			}
-			candidate = b.ResolveReference(u).String()
+		b, err := url.Parse(base)
+		if err != nil {
+			return "", fmt.Errorf("invalid MCP base URL")
 		}
-		return candidate, nil
+		u = b.ResolveReference(u)
+		if err := sameOrigin(b, u); err != nil {
+			return "", err
+		}
+		return u.String(), nil
 	}
 }
 

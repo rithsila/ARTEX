@@ -23,11 +23,29 @@ UA = "Mozilla/5.0 (spa-api-recon spider)"
 SKIP_EXT = re.compile(r'\.(css|png|jpe?g|gif|svg|ico|woff2?|ttf|pdf|zip|mp4|webp|js)(\?|$)', re.I)
 API_HINT = re.compile(r'/(?:api|rest|service|ajax|action|do|rpc|graphql|v\d|admin|backend)\b', re.I)
 
+def same_origin(base, candidate):
+    def origin(url):
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username is not None:
+            raise ValueError("invalid HTTP origin")
+        return parsed.scheme, parsed.hostname.lower(), parsed.port or (443 if parsed.scheme == "https" else 80)
+    try:
+        return origin(base) == origin(candidate)
+    except ValueError:
+        return False
+
+class SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not same_origin(req.full_url, newurl):
+            raise urllib.error.HTTPError(req.full_url, code, "cross-origin redirect blocked", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
 def fetch(url, cookie):
     h = {"User-Agent": UA}
     if cookie: h["Cookie"] = cookie
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=h), context=CTX, timeout=20) as r:
+        opener = urllib.request.build_opener(SameOriginRedirectHandler(), urllib.request.HTTPSHandler(context=CTX))
+        with opener.open(urllib.request.Request(url, headers=h), timeout=20) as r:
             ct = r.headers.get("Content-Type", "")
             if "html" not in ct and "xml" not in ct: return "", ct
             return r.read().decode("utf-8", "ignore"), ct
@@ -98,7 +116,7 @@ def main():
             for href in p.links:
                 if href.startswith(("mailto:", "tel:", "javascript:", "#")): continue
                 nxt = urllib.parse.urljoin(url, href).split("#")[0]
-                if not nxt.startswith(origin): continue
+                if not same_origin(base, nxt): continue
                 if SKIP_EXT.search(nxt): continue
                 if exc and exc.search(nxt): continue
                 if inc and not inc.search(nxt): continue
