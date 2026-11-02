@@ -748,7 +748,7 @@ func (d *DB) SeedPromptIfEmpty(agentID int64, tmpl string) error {
 	if cur.Valid {
 		return nil // already seeded or user-edited → leave it
 	}
-	_, err := d.SavePrompt(agentID, tmpl, "内置默认", "system")
+	_, err := d.SavePrompt(agentID, tmpl, "built-in default", "system")
 	return err
 }
 
@@ -815,7 +815,7 @@ type MCPServer struct {
 	Env       json.RawMessage `json:"env"`
 	URL       string          `json:"url,omitempty"`
 	Enabled   bool            `json:"enabled"`
-	Insecure  bool            `json:"insecure"` // http: skip TLS cert verification (self-signed servers, issue #108)
+	Insecure  bool            `json:"insecure"`        // http: skip TLS cert verification (self-signed servers, issue #108)
 	Tools     []string        `json:"tools,omitempty"` // cached tool names (mcp_tools_cache)
 }
 

@@ -91,8 +91,8 @@ func BuiltinToolSeeds() []ToolSeed {
 		}
 		out = append(out, ToolSeed{
 			Key:    k,
-			Desc:   a.tool.Description(),
-			Schema: a.tool.InputSchema(),
+			Desc:   LocalizeToolDesc(k, a.tool.Description()),
+			Schema: LocalizeToolSchema(k, a.tool.InputSchema()),
 			Agents: agents,
 		})
 	}

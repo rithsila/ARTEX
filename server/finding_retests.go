@@ -94,7 +94,7 @@ func (s *Server) startFindingRetest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if a == nil || !a.Enabled {
-		writeErr(w, 409, "漏洞复测 Agent 不存在或未启用，请在 Agent 管理中配置 retester")
+		writeErr(w, 409, "Finding Retester agent is missing or disabled. Configure retester in Agent Management.")
 		return
 	}
 	for _, key := range []string{"get_finding_retest_context", "record_finding_retest_result"} {
@@ -219,7 +219,7 @@ func (s *Server) seedFindingRetester() error {
 	}
 	var id int64
 	err = tx.QueryRow(`INSERT INTO agents(key,name,description,role,builtin,enabled)
-	VALUES ($1,'漏洞复测','从漏洞详情手动启动，读取原证据并保存独立复测结论。','assistant',false,true)
+	VALUES ($1,'Finding Retester','Started from a finding detail page. Reads the original evidence and saves a separate retest verdict.','assistant',false,true)
 	ON CONFLICT (key) DO NOTHING RETURNING id`, db.FindingRetestAgentKey).Scan(&id)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
@@ -227,7 +227,7 @@ func (s *Server) seedFindingRetester() error {
 	if id > 0 {
 		var pid int64
 		if err = tx.QueryRow(`INSERT INTO agent_prompts(agent_id,version,template_text,note,updated_by)
-		VALUES ($1,1,$2,'内置默认','system') RETURNING id`, id, agent.RetesterDefaultPrompt).Scan(&pid); err != nil {
+		VALUES ($1,1,$2,'built-in default','system') RETURNING id`, id, agent.RetesterDefaultPrompt).Scan(&pid); err != nil {
 			return err
 		}
 		if _, err = tx.Exec(`UPDATE agents SET current_prompt_id=$1 WHERE id=$2`, pid, id); err != nil {

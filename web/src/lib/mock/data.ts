@@ -3098,11 +3098,11 @@ export const agents: Agent[] = [
   {
     id: "1001",
     key: "retester",
-    name: "漏洞复测",
+    name: "Finding Retester",
     role: "assistant",
     builtin: false,
     enabled: true,
-    description: "从漏洞详情手动启动，保存独立复测结论",
+    description: "Started from a finding detail page. Saves a separate retest verdict.",
     max_turns: 0,
     mcp_count: 0,
     skill_count: 0,
@@ -3111,11 +3111,11 @@ export const agents: Agent[] = [
   {
     id: "1",
     key: "goals",
-    name: "目标拆解器",
+    name: "Goal Decomposer",
     role: "goals",
     builtin: true,
     enabled: true,
-    description: "把任务目标拆成可探索的子目标",
+    description: "Splits the task goal into checkable sub-goals",
     max_turns: 8,
     mcp_count: 0,
     skill_count: 1,
@@ -3124,11 +3124,11 @@ export const agents: Agent[] = [
   {
     id: "2",
     key: "planner",
-    name: "规划者",
+    name: "Planner",
     role: "planner",
     builtin: true,
     enabled: true,
-    description: "读探索路线、判断目标达成、生成意图",
+    description: "Reads routes, judges goals, emits intents",
     max_turns: 0,
     mcp_count: 1,
     skill_count: 2,
@@ -3141,7 +3141,7 @@ export const agents: Agent[] = [
     role: "mainagent",
     builtin: true,
     enabled: true,
-    description: "人在环路对话，注入 hint / 高优意图",
+    description: "Operator chat. Injects hints and high-priority intents.",
     max_turns: 0,
     web_search: true,
     mcp_count: 2,
@@ -3167,11 +3167,11 @@ export const agents: Agent[] = [
   {
     id: "5",
     key: "recon-bot",
-    name: "侦察机器人（自定义）",
+    name: "Recon Bot (custom)",
     role: "custom",
     builtin: false,
     enabled: true,
-    description: "定时对新资产做被动侦察",
+    description: "Scheduled passive recon on new assets",
     max_turns: 12,
     mcp_count: 1,
     skill_count: 1,
@@ -3180,21 +3180,21 @@ export const agents: Agent[] = [
 ];
 
 const promptVars: PromptVar[] = [
-  { name: "Goal", description: "当前任务目标", example: "拿到 acme.com 后台管理权限", source: "runtime" },
-  { name: "AssetSummary", description: "资产图概览", example: "6 子域 / 3 IP / 4 应用 / 4 端点", source: "distilled" },
-  { name: "RouteHint", description: "探索路线提示", example: "优先后台与 API 越权面", source: "exploration" },
+  { name: "Goal", description: "Current task goal", example: "Gain admin on acme.com", source: "runtime" },
+  { name: "AssetSummary", description: "Asset graph overview", example: "6 subdomains / 3 IPs / 4 apps / 4 endpoints", source: "distilled" },
+  { name: "RouteHint", description: "Exploration route hint", example: "Prioritize admin and API access-control surface", source: "exploration" },
 ];
 
 const promptVersions: PromptVersion[] = [
-  { version: 3, ts: T("2026-07-25T10:00:00Z"), note: "加强越权探测引导", template_text: "你是 ARTEX 的规划者……" },
-  { version: 2, ts: T("2026-07-20T10:00:00Z"), note: "初版微调", template_text: "你是 ARTEX 的规划者(v2)……" },
+  { version: 3, ts: T("2026-07-25T10:00:00Z"), note: "Stronger access-control guidance", template_text: "You are the ARTEX planner..." },
+  { version: 2, ts: T("2026-07-20T10:00:00Z"), note: "First-pass edit", template_text: "You are the ARTEX planner (v2)..." },
 ];
 
 export function agentDetail(key: string): AgentDetail {
   const a = agents.find((x) => x.key === key) ?? agents[1];
   return {
     agent: a,
-    prompt: `你是 ARTEX 的「${a.name}」。\n目标：{{.Goal}}\n资产概览：{{.AssetSummary}}\n路线提示：{{.RouteHint}}\n请基于以上信息推进探索，并通过工具把结果写回图。`,
+    prompt: `You are the ARTEX ${a.name}.\nGoal: {{.Goal}}\nAsset overview: {{.AssetSummary}}\nRoute hint: {{.RouteHint}}\nAdvance the exploration from the above and write results back through tools.`,
     variables: promptVars,
     versions: promptVersions,
     visibility: { mcp: [1, 2], skill: ["api-recon", "playwright-cli"] },
