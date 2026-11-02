@@ -204,6 +204,28 @@ func seedPrompts(pg *db.DB) {
 	}
 	refreshEnglishPrompts(pg)
 	refreshEnglishToolCopy(pg)
+	refreshEnglishPromptNotes(pg)
+}
+
+// refreshEnglishPromptNotes rewrites the Chinese version labels on built-in
+// prompt rows. The prompt bodies of old versions are history and stay as-is;
+// only the label shown in the version list changes.
+func refreshEnglishPromptNotes(pg *db.DB) {
+	const flag = "prompt_note_en_v1"
+	if v, _, _ := pg.GetSetting(flag); v == "done" {
+		return
+	}
+	if _, err := pg.Exec(`UPDATE agent_prompts SET note='built-in default' WHERE note='内置默认'`); err != nil {
+		log.Printf("[prompts] note refresh failed: %v", err)
+		return
+	}
+	if _, err := pg.Exec(`UPDATE agent_prompts SET note='restore built-in default' WHERE note='恢复为内置默认'`); err != nil {
+		log.Printf("[prompts] note refresh failed: %v", err)
+		return
+	}
+	if err := pg.SetSetting(flag, "done"); err != nil {
+		log.Printf("[prompts] note refresh flag failed: %v", err)
+	}
 }
 
 // refreshEnglishPrompts replaces still-Chinese built-in prompt bodies once.

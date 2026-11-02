@@ -753,9 +753,9 @@ func (d *DB) SeedPromptIfEmpty(agentID int64, tmpl string) error {
 }
 
 // ResetPromptToDefault appends the code-default template as a new version and
-// points current at it — the explicit "恢复为内置默认" action.
+// points current at it — the explicit "restore built-in default" action.
 func (d *DB) ResetPromptToDefault(agentID int64, tmpl string) (int, error) {
-	return d.SavePrompt(agentID, tmpl, "恢复为内置默认", "system")
+	return d.SavePrompt(agentID, tmpl, "restore built-in default", "system")
 }
 
 // SavePrompt appends a new version and points current_prompt_id at it.

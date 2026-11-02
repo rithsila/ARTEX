@@ -303,6 +303,9 @@ ON CONFLICT (name) DO NOTHING`,
 	if err := d.seedDefaultAssetInterceptRules(); err != nil {
 		return fmt.Errorf("seed asset intercept rules: %w", err)
 	}
+	if err := d.RefreshBuiltinInterceptCopy(); err != nil {
+		return fmt.Errorf("refresh intercept copy: %w", err)
+	}
 	return nil
 }
 
@@ -319,10 +322,10 @@ func (d *DB) seedDefaultAssetInterceptRules() error {
 		pattern string
 		note    string
 	}{
-		{"fuzzy_domain", ".gov", "[内置] 政府网站 (.gov)"},
-		{"fuzzy_domain", ".gov.cn", "[内置] 政府网站 (.gov.cn)"},
-		{"fuzzy_domain", ".edu", "[内置] 教育网站 (.edu)"},
-		{"fuzzy_domain", ".edu.cn", "[内置] 教育网站 (.edu.cn)"},
+		{"fuzzy_domain", ".gov", "[builtin] Government site (.gov)"},
+		{"fuzzy_domain", ".gov.cn", "[builtin] Government site (.gov.cn)"},
+		{"fuzzy_domain", ".edu", "[builtin] Education site (.edu)"},
+		{"fuzzy_domain", ".edu.cn", "[builtin] Education site (.edu.cn)"},
 	}
 	for _, r := range rules {
 		if _, err := d.Exec(`
@@ -380,164 +383,164 @@ func (d *DB) seedDefaultInterceptRules() error {
 		priority int
 	}
 	rules := []rule{
-		// ── 系统破坏性命令 (priority 100) ──────────────────────────────────
+		// ── destructive system commands (priority 100) ─────────────────────
 		{
-			name:     "[内置] 递归强制删除 rm -rf",
+			name:     "[builtin] recursive force delete rm -rf",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\brm\b.{0,80}(?:-[a-z]*r[a-z]*f[a-z]*|-[a-z]*f[a-z]*r[a-z]*|--recursive|--no-preserve-root)`,
 			action:   "deny",
-			message:  "禁止执行递归强制删除（rm -rf / rm --recursive），可能永久损坏系统或靶机环境",
+			message:  "Blocked: recursive force delete (rm -rf / rm --recursive) can permanently destroy the system or target environment",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 删除系统关键目录",
+			name:     "[builtin] delete critical system directory",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\brm\b[^"'\n]{0,60}["'\s](/|/etc|/bin|/usr|/boot|/var|/lib|/sys|/proc|/dev|/sbin|/root)`,
 			action:   "deny",
-			message:  "禁止删除系统关键路径",
+			message:  "Blocked: deleting critical system paths",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 磁盘格式化 mkfs",
+			name:     "[builtin] disk format mkfs",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\bmkfs\b`,
 			action:   "deny",
-			message:  "禁止格式化磁盘（mkfs）",
+			message:  "Blocked: disk format (mkfs)",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 覆写磁盘设备 dd",
+			name:     "[builtin] overwrite disk device dd",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\bdd\b[^|\n]{0,100}\bof=\s*/dev/[a-zA-Z]`,
 			action:   "deny",
-			message:  "禁止使用 dd 覆写磁盘设备",
+			message:  "Blocked: dd overwrite of a disk device",
 			priority: 100,
 		},
 		{
-			name:     "[内置] Fork 炸弹",
+			name:     "[builtin] fork bomb",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `:\(\)\s*\{[^}]*:\|:`,
 			action:   "deny",
-			message:  "禁止执行 Fork 炸弹",
+			message:  "Blocked: fork bomb",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 关机 / 重启",
+			name:     "[builtin] shutdown / reboot",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\b(?:shutdown|reboot|halt|poweroff|init\s+[06])\b`,
 			action:   "deny",
-			message:  "禁止执行关机或重启命令",
+			message:  "Blocked: shutdown or reboot command",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 杀死全部进程",
+			name:     "[builtin] kill all processes",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\bkill\s+-9\s+-1\b|\bkillall\s+-9\b`,
 			action:   "deny",
-			message:  "禁止 kill -9 -1 或 killall -9（杀死所有进程）",
+			message:  "Blocked: kill -9 -1 or killall -9 (kills every process)",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 磁盘擦除 shred / wipe",
+			name:     "[builtin] disk erase shred / wipe",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\b(?:shred|wipe)\b[^|\n]{0,80}/dev/[a-zA-Z]`,
 			action:   "deny",
-			message:  "禁止对磁盘设备执行 shred/wipe 擦除",
+			message:  "Blocked: shred/wipe on a disk device",
 			priority: 100,
 		},
 		{
-			name:     "[内置] 清空防火墙规则",
+			name:     "[builtin] flush firewall rules",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `\biptables\s+(?:-F|--flush)\b|\bnft\s+flush\s+ruleset\b`,
 			action:   "deny",
-			message:  "禁止清空防火墙规则（iptables -F / nft flush）",
+			message:  "Blocked: flushing firewall rules (iptables -F / nft flush)",
 			priority: 100,
 		},
-		// ── 数据库破坏性操作 (priority 90) ─────────────────────────────────
+		// ── destructive database operations (priority 90) ──────────────────
 		{
-			name:     "[内置] SQL DROP DATABASE / TABLE / SCHEMA",
+			name:     "[builtin] SQL DROP DATABASE / TABLE / SCHEMA",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\bDROP\s+(?:DATABASE|TABLE|SCHEMA|INDEX|VIEW|TABLESPACE|USER|ROLE)\b`,
 			action:   "deny",
-			message:  "禁止执行 DROP 操作，可能不可逆地销毁数据库对象",
+			message:  "Blocked: DROP destroys database objects, often irreversibly",
 			priority: 90,
 		},
 		{
-			name:     "[内置] SQL TRUNCATE",
+			name:     "[builtin] SQL TRUNCATE",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\bTRUNCATE\s+(?:TABLE\s+)?\w`,
 			action:   "deny",
-			message:  "禁止执行 TRUNCATE，可能清空数据表所有数据",
+			message:  "Blocked: TRUNCATE empties every row of the table",
 			priority: 90,
 		},
 		{
-			name:     "[内置] MongoDB drop / dropDatabase",
+			name:     "[builtin] MongoDB drop / dropDatabase",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\.(?:dropDatabase|dropCollection|drop)\s*\(`,
 			action:   "deny",
-			message:  "禁止执行 MongoDB drop 操作",
+			message:  "Blocked: MongoDB drop operation",
 			priority: 90,
 		},
 		{
-			name:     "[内置] Redis FLUSHALL / FLUSHDB",
+			name:     "[builtin] Redis FLUSHALL / FLUSHDB",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\b(?:FLUSHALL|FLUSHDB)\b`,
 			action:   "deny",
-			message:  "禁止执行 Redis FLUSHALL / FLUSHDB，可能清空全部缓存数据",
+			message:  "Blocked: Redis FLUSHALL / FLUSHDB clears all cached data",
 			priority: 90,
 		},
-		// ── HTTP 破坏性请求 (priority 80) ──────────────────────────────────
-		// Agent 发送 DELETE 请求的三种常见方式：
-		//   1. curl -X DELETE / --request DELETE（Bash 工具直接执行或写入脚本）
-		//   2. Python HTTP 客户端 .delete() 方法
-		//   3. JS/通用脚本里的 method: 'DELETE' / method="DELETE"
+		// ── destructive HTTP requests (priority 80) ────────────────────────
+		// Three common ways an agent sends a DELETE request:
+		//   1. curl -X DELETE / --request DELETE (run directly by the bash tool or written into a script)
+		//   2. a Python HTTP client .delete() call
+		//   3. method: 'DELETE' / method="DELETE" in a JS or generic script
 		{
-			name:     "[内置] curl / wget 发送 DELETE 请求",
+			name:     "[builtin] curl / wget HTTP DELETE",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\bcurl\b[^|\n&;"]{0,300}(?:-X\s*DELETE|--request\s+DELETE|-XDELETE)|\bwget\b[^|\n&;"]{0,300}--method[=\s]+DELETE`,
 			action:   "deny",
-			message:  "禁止通过 curl/wget 发送 HTTP DELETE 请求，可能删除目标系统数据",
+			message:  "Blocked: HTTP DELETE via curl/wget can delete target-system data",
 			priority: 80,
 		},
 		{
-			name:     "[内置] Python HTTP 客户端 DELETE（requests/httpx/aiohttp）",
+			name:     "[builtin] Python HTTP client DELETE (requests/httpx/aiohttp)",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)\b(?:requests|httpx|aiohttp|urllib\.request)\.delete\s*\(|session\.delete\s*\(|client\.delete\s*\(`,
 			action:   "deny",
-			message:  "禁止使用 Python HTTP 客户端发送 DELETE 请求",
+			message:  "Blocked: HTTP DELETE from a Python HTTP client",
 			priority: 80,
 		},
 		{
-			name:     "[内置] 脚本中声明 HTTP DELETE 方法（JS/通用）",
+			name:     "[builtin] script declares HTTP DELETE method (JS/generic)",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)axios\.delete\s*\(|method\s*[:=]\s*['"]DELETE['"]`,
 			action:   "deny",
-			message:  "禁止在脚本中声明并发送 HTTP DELETE 请求",
+			message:  "Blocked: script declares and sends an HTTP DELETE request",
 			priority: 80,
 		},
 		{
-			name:     "[内置] 批量清空 / 清除接口路径",
+			name:     "[builtin] bulk clear / purge endpoint path",
 			target:   "tool_input",
 			typ:      "regex",
 			pattern:  `(?i)/(?:clear|wipe|flush|purge|truncate|drop|destroy|factory[-_]reset|reset[-_]all)(?:[/?#"'\s]|$)`,
 			action:   "deny",
-			message:  "禁止调用批量清空或销毁类接口（/clear /wipe /flush /purge 等）",
+			message:  "Blocked: bulk clear or destroy endpoint (/clear /wipe /flush /purge and similar)",
 			priority: 80,
 		},
 	}
@@ -557,7 +560,7 @@ ON CONFLICT DO NOTHING`,
 // seedDefaultInterceptRulesV2 migrates the two safety patterns that used to be
 // hard-coded in guard.go (destructive shell + data-exfil pipe) into ordinary
 // intercept rules. Gated by its own flag so it also lands on DBs that already ran
-// v1. Unlike the old guard.go floor, these are plain [内置] rules — the user can
+// v1. Unlike the old guard.go floor, these are plain [builtin] rules — the user can
 // disable or delete them. The exfil rule ships DISABLED by default (its
 // curl/wget/nc pipe pattern mis-fires on legitimate CTF/pentest reverse-shell and
 // data-transfer pipes); enable it manually when exfil gating is actually wanted.
@@ -574,18 +577,18 @@ func (d *DB) seedDefaultInterceptRulesV2() error {
 		priority int
 	}{
 		{
-			name:     "[内置] 破坏性系统命令",
+			name:     "[builtin] destructive system command",
 			pattern:  `(?i)\b(rm\s+-rf\s+/|mkfs|dd\s+if=|:\(\)\s*\{|shutdown|reboot|>\s*/dev/sd)`,
 			action:   "deny",
-			message:  "破坏性命令被拒绝（rm -rf / / mkfs / dd / fork bomb / 关机重启 / 覆写磁盘设备）",
+			message:  "Destructive command denied (rm -rf / / mkfs / dd / fork bomb / shutdown / reboot / disk overwrite)",
 			enabled:  true,
 			priority: 100,
 		},
 		{
-			name:     "[内置] 数据外泄管道",
+			name:     "[builtin] data exfiltration pipe",
 			pattern:  `(?i)(curl|wget|nc|ncat)\b[^|]*\b(\|\s*(curl|wget|nc))`,
 			action:   "deny",
-			message:  "疑似数据外泄管道被拒绝（命令输出经 curl/wget/nc 外传）",
+			message:  "Suspected data exfiltration pipe denied (command output piped out via curl/wget/nc)",
 			enabled:  false,
 			priority: 80,
 		},
@@ -623,14 +626,14 @@ func (d *DB) seedDefaultInterceptRulesV3() error {
 	if v, _, _ := d.GetSetting("intercept_default_rules_v3"); v == "done" {
 		return nil
 	}
-	const name = "[内置] 删除类接口路径"
+	const name = "[builtin] delete endpoint path"
 	if _, err := d.Exec(`
 INSERT INTO intercept_rules(name, enabled, priority, match_target, match_type, pattern, action, message, timeout_enabled, timeout_seconds, timeout_action)
 SELECT $1, true, 80, 'tool_input', 'regex', $2, 'deny', $3, false, 60, 'deny'
 WHERE NOT EXISTS (SELECT 1 FROM intercept_rules WHERE name = $1)`,
 		name,
 		deleteEndpointPathPattern,
-		"禁止调用删除类接口（/delete /remove /unlink /erase 等），不论使用哪种 HTTP 方法——多数应用的删除接口用 GET/POST 就能触发，同样会真实删除目标数据",
+		"Blocked: delete endpoint paths (/delete /remove /unlink /erase and similar) under any HTTP method — most apps expose deletion over GET/POST, which still deletes target data",
 	); err != nil {
 		return fmt.Errorf("rule %q: %w", name, err)
 	}
