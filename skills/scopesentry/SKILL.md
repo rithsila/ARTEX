@@ -1,11 +1,39 @@
 ---
 name: scopesentry
 description: Use when managing or querying the headless ScopeSentry security scanning platform via MCP or the standalone scopesentry CLI (projects, scan tasks, templates, asset queries, direct tool execution).
+mcps: ScopeSentry
 ---
 
 # ScopeSentry MCP & CLI Guide
 
 ScopeSentry is a headless, distributed asset mapping and vulnerability scanning platform. All Web UI and browser components have been removed in favor of a native Model Context Protocol (MCP) server, an administrative CLI (`ScopeSentry`), and a lightweight standalone Go CLI client (`scopesentry`).
+
+In ARTEX, grant this skill separately to Auto (standalone Chat), Main Agent (task
+console), and any Worker that needs it. Loading `Skill(scopesentry)` unlocks the
+enabled `ScopeSentry` MCP's deferred tools; discover schemas via `SearchExtraTools`
+and invoke via `ExecuteExtraTool`. Visibility alone is not loading. If the skill is
+visible, its MCP tools stay gated until load, even with direct MCP visibility.
+No permission grants or visibility migrations happen automatically.
+See `SCOPESENTRY_GUIDE.md` for setup and the separate asset import tool.
+
+## Safety: adding targets to an existing project
+
+`create_project` replaces scope for an existing name. Before an “add target” request:
+
+1. Select the exact project ID (`list_projects_data`); read `get_project` for that ID.
+2. Read the **COMPLETE current `project.target`**, not a list summary or truncated
+   response. If the read fails, is missing, truncated, or incomplete, **STOP**. Do not
+   call `create_project`; ask for a complete read instead.
+3. Merge all existing targets with new targets, preserving the old scope. Pass the
+   existing project name and full merged target string to `create_project`. Never
+   pass only the new target for an existing name. Use actual newline characters.
+4. Read `get_project` again to verify. Avoid concurrent scope edits: this API has no
+   compare-and-swap protection.
+
+Example: old `example.com` + `192.0.2.0/24`, adding `third.example`, must send
+`"target":"example.com\n192.0.2.0/24\nthird.example"` in JSON. JSON `\n` decodes to real
+newlines; shell double quotes do not. Checked transcript:
+`integration/scopesentry/testdata/workflow.json` (NOT an LLM obedience test).
 
 ---
 
@@ -77,7 +105,7 @@ Authentication supports either `X-API-Key: ssk_...` or `Authorization: Bearer ss
 ### 2.2 CLI Configuration
 
 Configure via CLI flags, environment variables, or config files:
-- **Flags**: `--url <server_url>` (default: `http://localhost:8082`), `--key <api_key>`
+- **Flags**: `--url <server_url>` (default: `http://localhost:8082`), `--api-key <api_key>`
 - **Environment variables**: `SCOPESENTRY_URL`, `SCOPESENTRY_API_KEY`
 - **Config files**: `.scopesentry.yaml` or `~/.config/scopesentry/config.yaml`
 
@@ -100,7 +128,7 @@ scopesentry project list --search "internal" --page 1 --size 20
 scopesentry project get <project-id>
 
 # Create or update project (replaces scope targets if project name already exists)
-scopesentry project create --name "Corp-Infra" --target "example.com\n192.168.1.0/24" --tag "Prod"
+scopesentry project create --name "Corp-Infra" --target $'example.com\n192.0.2.0/24' --tag "Prod"
 ```
 
 #### Scan Tasks
@@ -117,6 +145,10 @@ scopesentry task create --name "recon-task" --node "node-1" --template "<templat
 
 # Wait / poll for task completion
 scopesentry task wait <task-id> --timeout 10m --interval 5s
+
+# Request acceptance, not scanner acknowledgement; inspect task status afterwards
+scopesentry task stop <task-id>
+scopesentry task resume <task-id>
 ```
 
 #### Assets & Vulnerabilities
@@ -136,14 +168,13 @@ scopesentry asset add-tag --type asset --id <asset-id> --tag "triage"
 
 #### Direct Tool Calling
 ```bash
-# List all 17 MCP tools and JSON schemas
+# Discover live MCP tools (19 after stop/resume; older deployments differ)
 scopesentry tools list
 
 # Describe a specific tool schema
 scopesentry tools describe create_scan_task
 
 # Execute tool with JSON arguments
-scopesentry tools call list_projects_data --args '{"search":"","pageIndex":1,"pageSize":10}'
 scopesentry tools call list_projects_data --input '{"search":"","pageIndex":1,"pageSize":10}'
 scopesentry tools call create_scan_task --input-file ./task.json
 ```
@@ -152,7 +183,8 @@ scopesentry tools call create_scan_task --input-file ./task.json
 
 ## 3. MCP Tool Overview
 
-All 17 MCP tool schemas and parameter descriptions are native English.
+The current source exposes 19 tools with English schemas. Always discover the live
+list instead of requiring an exact count; older deployments may lack lifecycle tools.
 
 | Tool | Purpose |
 | --- | --- |
@@ -168,13 +200,17 @@ All 17 MCP tool schemas and parameter descriptions are native English.
 | `list_plugins` | Available plugins (with hash and default parameters) |
 | `create_scan_template` | Create scan template |
 | `create_scan_task` | Create scan task |
+| `stop_scan_task` | Request stop for one task: `{"id":"<task ObjectID>"}` |
+| `resume_scan_task` | Request resume for one task: `{"id":"<task ObjectID>"}` |
 | `list_assets` | Query assets of each type (paged list) |
 | `count_assets` | Count assets matching query without fetching rows |
 | `get_asset_detail` | Asset or vulnerability detail |
 | `add_asset_tag` | Add a tag to an asset |
 | `list_nodes` | Scan node list |
 
-*Scope replacement behavior*: `create_project` requires `name` and valid `target`. If the project name already exists and the target contains valid items, it updates and replaces the existing project target scope.
+*Scope replacement behavior*: `create_project` requires `name` and valid `target`.
+For existing names it replaces scope. Follow the complete-read/merge/verify procedure
+above; stop on failed or incomplete reads.
 
 ---
 
@@ -202,11 +238,17 @@ When a project context exists, pass `filter.project` with the project **ObjectID
 2. `list_scan_templates` to get the desired template **ObjectID**.
 3. `create_scan_task` with `name`, `node`, `template`, and `targetSource`.
 
+Validate the template ObjectID with `get_scan_template` and choose online node names
+before creating a task. `allNode` resolves online nodes only. MCP accepts one-shot
+scans only: recurring/scheduled requests are rejected, not silently run once. REST
+scheduling remains separate. Stop/resume return acceptance, not worker acknowledgement;
+use `get_task` for subsequent status. Do not start a scan without approved scope.
+
 **Target sources (`targetSource`):**
 
 | targetSource | Description | Required parameters |
 | --- | --- | --- |
-| `general` | Direct target entry | `target` (multiline or comma-separated) |
+| `general` | Direct target entry | `target` (actual newlines for multiple targets) |
 | `project` | Read targets from an existing project | `project` (array of project ObjectIDs) |
 | `asset` | Search asset inventory | `search`; optional `project`, `filter`, `targetNumber` |
 | `RootDomain` | Search root domain inventory | `search`; optional `project`, `filter`, `targetNumber` |
@@ -281,6 +323,9 @@ Custom DSL expressions evaluated against MongoDB:
 | `||` | Logical OR | — | `title=admin || body=login` |
 
 *Fields common to all asset types*: `tag`, `task` (task name), `rootDomain`.
+Results use the task **name**, not the ID from `create_scan_task`. Use
+`filter.task: ["<task name>"]` and `filter.project: ["<project ObjectID>"]` together
+to narrow results. `get_task` and stop/resume use task **IDs**.
 
 *Search fields by asset type*:
 - `asset`: domain, ip, port, service, app, title, statuscode, icon, banner, type, body, header
@@ -299,19 +344,21 @@ Custom DSL expressions evaluated against MongoDB:
 
 ### 5.3 Exact Filter (`filter`)
 
-A JSON map where values under the same key are OR'd; different keys are AND'd.
+A JSON map of string arrays: values under one key are OR'd; different keys are AND'd.
+Use only fields supported by the selected asset collection; this is not a universal
+set of filters. Inspect live schemas and use the DSL for type-specific fields.
 
 | filter key | Meaning | Value format |
 | --- | --- | --- |
 | `project` | Owning project | MongoDB **ObjectID** (array) |
-| `task` | Source task | Task name (string) |
-| `port` | Port number | e.g. `"443"` |
-| `service` | Service / protocol | e.g. `"https"` |
-| `app` | Fingerprint | e.g. `"Nginx"` |
-| `level` | Vulnerability severity | `critical`, `high`, `medium`, `low`, `info` |
-| `statuscode`| HTTP status code | e.g. `200` |
-| `status` | Finding handling status / URL status | string / number |
-| `sname` | Sensitive rule name | string |
+| `task` | Source task | Task names (array, not IDs) |
+| `port` | Port number | e.g. `["443"]` |
+| `service` | Service / protocol | e.g. `["https"]` |
+| `app` | Fingerprint | e.g. `["Nginx"]` |
+| `level` | Vulnerability severity | e.g. `["high"]` |
+| `statuscode`| HTTP status code | e.g. `["200"]` |
+| `status` | Finding handling status / URL status | array of strings |
+| `sname` | Sensitive rule name | array of strings |
 | `tags` | Assigned tags | array of strings |
 
 **Filter example:**

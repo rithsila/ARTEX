@@ -103,7 +103,10 @@ func BuiltinToolSeeds() []ToolSeed {
 // the DB tools table: it drops tools not bound to this agent (or globally disabled)
 // and wraps the rest so the model sees the DB-overridden description/schema and
 // 缺省入参 get injected. Tools with no matching DB row (MCP/skill/host tools like
-// traffic) pass through untouched. nil = tools unchanged. Wired in server/assembly.go.
+// traffic) pass through untouched. Server-owned catalog entries (for example
+// sync_scopesentry_assets) are seeded separately with explicit opt-in bindings;
+// ScopeSentry sync is also dropped on a missing row or catalog read failure.
+// nil = tools unchanged. Wired in server/assembly.go.
 var ToolResolve func(ctx context.Context, agentKey string, tools []actool.CoreTool) []actool.CoreTool
 
 // DecorateTool wraps t so Description()/InputSchema() report the DB overrides and

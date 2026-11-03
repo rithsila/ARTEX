@@ -12,6 +12,7 @@
 #   docker build -t artex:local .
 FROM python:3.12-slim-bookworm
 ARG TARGETARCH
+ARG INSTALL_SCOPESENTRY_CLI=false
 # 常用工具：ripgrep / curl / vim，加一批 recon 常备件（按需增删）。
 # Node 从 NodeSource 装 20.x：bookworm 自带的 apt nodejs 是 18，Playwright 要求 >=20。
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,6 +39,18 @@ COPY dist/${TARGETARCH}/artex /app/artex
 COPY start.sh /app/start.sh
 RUN chmod +x /app/artex /app/start.sh
 COPY skills/ /app/skills/
+# Optional offline CLI staging. The directory always exists (.gitignore); a COPY
+# of an optional wildcard/file would break MCP-only builds when it is missing.
+COPY tools/bin/ /tmp/scopesentry-cli/
+RUN case "${TARGETARCH}" in amd64|arm64) ;; *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 2 ;; esac; \
+    case "${INSTALL_SCOPESENTRY_CLI}" in true|false) ;; *) echo "INSTALL_SCOPESENTRY_CLI must be true or false" >&2; exit 2 ;; esac; \
+    if [ "${INSTALL_SCOPESENTRY_CLI}" = true ] && [ -f "/tmp/scopesentry-cli/scopesentry-linux-${TARGETARCH}" ]; then \
+      install -m 0755 "/tmp/scopesentry-cli/scopesentry-linux-${TARGETARCH}" /usr/local/bin/scopesentry; \
+    else \
+      echo 'ScopeSentry CLI not installed; MCP-only operation remains available.'; \
+    fi; \
+    rm -rf /tmp/scopesentry-cli
+# end optional ScopeSentry CLI
 # data/（SQLite + jwt.key）持久化点
 VOLUME ["/app/data"]
 EXPOSE 8787 8788

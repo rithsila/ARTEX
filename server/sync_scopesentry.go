@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -24,8 +25,6 @@ import (
 
 const (
 	scopeSentryMCPName = "ScopeSentry"
-	syncMaxPerType     = 5000 // 单目标单类型的入库保护上限
-	syncDefaultPage    = 100
 )
 
 // findMCPByName returns the MCP server row with the given name, or nil.
@@ -247,259 +246,43 @@ func (s *Server) syncSSTasks(w http.ResponseWriter, r *http.Request) {
 
 // ---------- POST /api/sync/scopesentry/sync ----------
 
-type ssSyncReq struct {
-	Dimension     string   `json:"dimension"`   // "project" | "task"
-	Targets       []string `json:"targets"`     // project ObjectIDs, or task names
-	AssetTypes    []string `json:"asset_types"` // subdomain | app | service
-	CreateCompany bool     `json:"create_company"`
-	PageSize      int      `json:"page_size"`
-}
-
 func (s *Server) syncSSRun(w http.ResponseWriter, r *http.Request) {
-	if s.pg(w) == nil {
-		return
-	}
-	as := s.assetStore()
-	cs := s.companyStore()
-	if as == nil || cs == nil {
-		writeErr(w, 503, "database unavailable")
-		return
-	}
 	var req ssSyncReq
 	if err := decode(r, &req); err != nil {
 		writeErr(w, 400, "invalid JSON: "+err.Error())
 		return
 	}
-	if req.Dimension != "project" && req.Dimension != "task" {
-		writeErr(w, 400, "dimension must be project or task")
-		return
-	}
-	if len(req.Targets) == 0 {
-		writeErr(w, 400, "targets cannot be empty")
-		return
-	}
-	if len(req.AssetTypes) == 0 {
-		req.AssetTypes = []string{"subdomain", "service", "app"}
-	}
-	pageSize := req.PageSize
-	if pageSize <= 0 || pageSize > 500 {
-		pageSize = syncDefaultPage
-	}
-
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Minute)
-	defer cancel()
-	cl, err := s.scopeSentryClient(ctx)
+	resp, err := s.syncScopeSentry(r.Context(), req)
 	if err != nil {
-		writeErr(w, 502, err.Error())
+		status := 502
+		var syncErr *ssSyncError
+		if errors.As(err, &syncErr) {
+			status = syncErr.Status
+		}
+		writeErr(w, status, err.Error())
 		return
 	}
-	defer cl.Close()
-
-	synced := map[string]int{"subdomain": 0, "app": 0, "service": 0, "ip": 0}
-	var companies []string
-	var warnings, errs []string
-	madeCompany := false
-
-	for _, target := range req.Targets {
-		filter := map[string]any{}
-		switch req.Dimension {
-		case "project":
-			filter["project"] = []string{target}
-			if req.CreateCompany {
-				name, roots, perr := s.ssProjectMeta(ctx, cl, target)
-				if perr != nil {
-					warnings = append(warnings, fmt.Sprintf("failed to get project %s details: %v", target, perr))
-				} else if name != "" {
-					cid, cerr := cs.UpsertByName(name)
-					if cerr != nil {
-						warnings = append(warnings, fmt.Sprintf("failed to create company %s: %v", name, cerr))
-					} else {
-						companies = append(companies, name)
-						madeCompany = true
-						if len(roots) > 0 {
-							cs.AddScope(cid, roots, "scopesentry:"+name)
-						}
-					}
-				}
-			}
-		case "task":
-			filter["task"] = []string{target}
-		}
-
-		for _, at := range req.AssetTypes {
-			ssType, ok := map[string]string{"subdomain": "subdomain", "service": "asset", "app": "app"}[at]
-			if !ok {
-				warnings = append(warnings, "unknown asset type, skipped: "+at)
-				continue
-			}
-			items, truncated, ferr := s.ssPageAll(ctx, cl, ssType, filter, pageSize)
-			if ferr != nil {
-				errs = append(errs, fmt.Sprintf("failed to fetch %s(%s): %v", at, target, ferr))
-				continue
-			}
-			if truncated {
-				warnings = append(warnings, fmt.Sprintf("%s(%s) reached %d limit, truncated", at, target, syncMaxPerType))
-			}
-			for _, raw := range items {
-				if e := s.ssIngest(as, at, raw, synced); e != "" {
-					errs = append(errs, e)
-				}
-			}
-		}
-	}
-
-	// Rebuild company attribution so freshly-synced assets attach to their company
-	// (scope was written above; assets came after).
-	if madeCompany {
-		_ = cs.RecomputeAttribution()
-	}
-
-	writeJSON(w, 200, map[string]any{
-		"synced":    synced,
-		"companies": companies,
-		"warnings":  warnings,
-		"errors":    errs,
-	})
+	writeJSON(w, 200, resp)
 }
 
-// ssProjectMeta fetches a project's display name and its target root domains
-// (get_project.target is a newline-separated list) for company + scope creation.
-func (s *Server) ssProjectMeta(ctx context.Context, cl *mcphttp.Client, projectID string) (name string, roots []string, err error) {
-	text, err := cl.Call(ctx, "get_project", map[string]any{"id": projectID})
-	if err != nil {
-		return "", nil, err
+func (s *Server) syncScopeSentry(ctx context.Context, req ssSyncReq) (ssSyncResponse, error) {
+	// Selection errors must not cause even configuration/store I/O.
+	if err := validateSSSync(req); err != nil {
+		return ssSyncResponse{}, err
 	}
-	var p struct {
-		Name   string `json:"name"`
-		Target string `json:"target"`
+	if err := ctx.Err(); err != nil {
+		return ssSyncResponse{}, err
 	}
-	if err := json.Unmarshal([]byte(text), &p); err != nil {
-		return "", nil, err
+	if s.m == nil || s.m.pg == nil {
+		return ssSyncResponse{}, &ssSyncError{Status: 503, Message: "database unavailable"}
 	}
-	for _, line := range strings.Split(p.Target, "\n") {
-		if t := strings.TrimSpace(line); t != "" {
-			roots = append(roots, t)
-		}
+	as, cs := s.assetStore(), s.companyStore()
+	if as == nil || cs == nil {
+		return ssSyncResponse{}, &ssSyncError{Status: 503, Message: "database unavailable"}
 	}
-	return p.Name, roots, nil
-}
-
-// ssPageAll pages through list_assets for one asset_type + filter until a short/empty
-// page or the protection cap. The {list:[...]} envelope has no total, so we stop when
-// a page returns fewer than pageSize items.
-func (s *Server) ssPageAll(ctx context.Context, cl *mcphttp.Client, ssType string, filter map[string]any, pageSize int) (items []json.RawMessage, truncated bool, err error) {
-	for page := 1; ; page++ {
-		args := map[string]any{"asset_type": ssType, "pageIndex": page, "pageSize": pageSize}
-		if len(filter) > 0 {
-			args["filter"] = filter
-		}
-		text, cerr := cl.Call(ctx, "list_assets", args)
-		if cerr != nil {
-			return items, truncated, cerr
-		}
-		var env struct {
-			List []json.RawMessage `json:"list"`
-		}
-		if uerr := json.Unmarshal([]byte(text), &env); uerr != nil {
-			return items, truncated, uerr
-		}
-		if len(env.List) == 0 {
-			break
-		}
-		items = append(items, env.List...)
-		if len(items) >= syncMaxPerType {
-			items = items[:syncMaxPerType]
-			truncated = true
-			break
-		}
-		if len(env.List) < pageSize {
-			break
-		}
-	}
-	return items, truncated, nil
-}
-
-// ssIngest maps one ScopeSentry asset JSON to the ARTEX asset store and upserts it.
-// Returns a non-empty error string on failure. synced is incremented per kind.
-func (s *Server) ssIngest(as *db.AssetStore, assetType string, raw json.RawMessage, synced map[string]int) string {
-	switch assetType {
-	case "subdomain":
-		var it struct {
-			Host  string   `json:"host"`
-			Type  string   `json:"type"`
-			Value []string `json:"value"`
-			IP    []string `json:"ip"`
-		}
-		if err := json.Unmarshal(raw, &it); err != nil {
-			return "failed to parse subdomain: " + err.Error()
-		}
-		if it.Host == "" {
-			return ""
-		}
-		if _, err := as.UpsertSubdomain(db.UpsertSubdomainReq{Domain: it.Host, RecordType: it.Type, RecordValue: it.Value}); err != nil {
-			return "subdomain " + it.Host + ": " + err.Error()
-		}
-		synced["subdomain"]++
-		for _, ip := range it.IP {
-			if ip != "" {
-				if _, err := as.UpsertIP(db.UpsertIPReq{IP: ip, BoundDomains: []string{it.Host}}); err == nil {
-					synced["ip"]++
-				}
-			}
-		}
-	case "app":
-		var it struct {
-			Name        string `json:"name"`
-			Category    string `json:"category"`
-			Description string `json:"description"`
-			ICP         string `json:"icp"`
-		}
-		if err := json.Unmarshal(raw, &it); err != nil {
-			return "failed to parse app: " + err.Error()
-		}
-		if it.Name == "" {
-			return ""
-		}
-		if _, err := as.UpsertApp(db.UpsertAppReq{Name: it.Name, Category: it.Category, Description: it.Description, ICP: it.ICP}); err != nil {
-			return "app " + it.Name + ": " + err.Error()
-		}
-		synced["app"]++
-	case "service":
-		var it struct {
-			Domain   string   `json:"domain"`
-			IP       string   `json:"ip"`
-			Port     string   `json:"port"`
-			Service  string   `json:"service"`
-			URL      string   `json:"url"`
-			Title    string   `json:"title"`
-			Status   *int     `json:"status"`
-			Products []string `json:"products"`
-			Icon     string   `json:"icon"`
-		}
-		if err := json.Unmarshal(raw, &it); err != nil {
-			return "failed to parse service: " + err.Error()
-		}
-		if it.Service == "http" || it.URL != "" {
-			if it.URL == "" {
-				return ""
-			}
-			if _, err := as.UpsertHTTPService(db.UpsertHTTPServiceReq{
-				URL: it.URL, Technologies: it.Products, StatusCode: it.Status,
-				PageTitle: it.Title, FaviconMMH3: it.Icon, IP: it.IP,
-			}); err != nil {
-				return "service " + it.URL + ": " + err.Error()
-			}
-		} else {
-			port, _ := strconv.Atoi(it.Port)
-			if _, err := as.UpsertOtherService(db.UpsertOtherServiceReq{
-				Domain: it.Domain, IP: it.IP, Port: port, ServiceName: it.Service,
-			}); err != nil {
-				return "service " + it.IP + ":" + it.Port + ": " + err.Error()
-			}
-		}
-		synced["service"]++
-	}
-	return ""
+	return syncScopeSentry(ctx, req, func(ctx context.Context) (ssSyncClient, error) {
+		return s.scopeSentryClient(ctx)
+	}, as, cs)
 }
 
 // queryInt reads an int query param with a default fallback.

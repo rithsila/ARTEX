@@ -309,7 +309,8 @@ func refreshEnglishToolCopy(pg *db.DB) {
 // edits survive restart) and wires the DB tools table into the agent runtime: at
 // tool-assembly time each built-in tool is filtered by its agent binding / enabled
 // flag and, if kept, wrapped so the model sees the DB-overridden description/schema
-// and default inputs get injected. MCP/skill/host tools have no row and pass through.
+// and default inputs get injected. Unmanaged MCP/skill/host tools pass through;
+// ScopeSentry sync always requires an explicit catalog grant.
 func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 	agent.FindingTrafficBindingEnabled = func() bool { return pg.GetBool(settingAgentTrafficBinding, false) }
 	// Seed the built-in domain tools (first-insert only; DO NOTHING preserves edits).
@@ -333,6 +334,17 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 			log.Printf("[tools] seed %s failed: %v", t.Name(), err)
 		}
 	}
+	wireToolResolver(pg, domainReg)
+}
+
+// toolResolverCatalog is the runtime catalog boundary; seeding stays in wireTools.
+type toolResolverCatalog interface {
+	ListTools() ([]*db.Tool, error)
+	GetAgentByKey(string) (*db.Agent, error)
+	toolUsageRecorder
+}
+
+func wireToolResolver(pg toolResolverCatalog, domainReg map[string]actool.CoreTool) {
 	// bashInteractiveShellNote is appended to Bash's description ONLY for agents whose
 	// interactive_shell is on, so Bash points at shell_open for interactive programs
 	// without ever referencing a tool that isn't injected (§14.1/§14.2).
@@ -340,8 +352,14 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 	agent.ToolResolve = func(ctx context.Context, agentKey string, tools []actool.CoreTool) []actool.CoreTool {
 		rows, err := pg.ListTools()
 		if err != nil {
-			log.Printf("[tools] read tools table failed, allowing by code default: %v", err)
-			return tools
+			log.Printf("[tools] read tools table failed, allowing by code default except opt-in ScopeSentry sync: %v", err)
+			out := tools[:0:0]
+			for _, t := range tools {
+				if t.Name() != "sync_scopesentry_assets" {
+					out = append(out, t)
+				}
+			}
+			return out
 		}
 		byKey := make(map[string]*db.Tool, len(rows))
 		for _, t := range rows {
@@ -358,8 +376,10 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 		out := tools[:0:0]
 		for _, t := range tools {
 			row, known := byKey[t.Name()]
-			if !known { // MCP/skill/host tool: no row → untouched
-				out = append(out, t)
+			if !known { // Unmanaged tools pass through; opt-in sync requires a row.
+				if t.Name() != "sync_scopesentry_assets" {
+					out = append(out, t)
+				}
 				continue
 			}
 			if !row.Enabled || !contains(row.Agents, agentKey) {

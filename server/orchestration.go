@@ -40,7 +40,8 @@ func jsonResult(v any) (actool.Result, error) {
 func (s *Server) hostTools() ([]actool.CoreTool, map[string][]string) {
 	tools := append(s.m.HostTools(), s.orchestrationTools()...)
 	tools = append(tools, s.findingRetestTools()...)
-	tools = append(tools, s.platformTools()...) // 平台操作工具(建改 skill/工具/MCP，给 Auto 用)
+	tools = append(tools, s.platformTools()...)    // 平台操作工具(建改 skill/工具/MCP，给 Auto 用)
+	tools = append(tools, s.toolSyncScopeSentry()) // explicitly opt-in via tools catalog
 	custom, err := s.customTools()
 	if err != nil {
 		log.Printf("[custom-tool] load failed: %v", err)
@@ -469,6 +470,13 @@ func (s *Server) deriveTaskStatus(t *Task) string {
 // are bindable per-agent (default: bound to nobody — opt-in for orchestration
 // agents). First-insert only, like the traffic seeds.
 func (s *Server) seedOrchestrationTools() {
+	for _, seed := range s.scopeSentryToolSeeds() {
+		schema, _ := json.Marshal(seed.Schema)
+		bindings, _ := json.Marshal(seed.Agents)
+		if err := s.m.PG().SeedTool(seed.Key, seed.Desc, schema, bindings); err != nil {
+			log.Printf("[tools] seed %s failed: %v", seed.Key, err)
+		}
+	}
 	// task-op + platform tools default-bind to the built-in Auto agent (它天生用来
 	// 操作平台)。SeedTool 首插入生效;老库已 seed 的行由 seedAutoDefaultBindings 补绑。
 	autoAgents, _ := json.Marshal([]string{"auto"})

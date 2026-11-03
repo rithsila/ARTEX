@@ -1,0 +1,19 @@
+{
+  "coverage": "Checked illustrative transcript, NOT executed against MCP, NOT LLM-tested. complete/online_names/ids are fixture annotations, not promised server response fields.",
+  "steps": [
+    {"tool":"list_projects_data","input":{"search":"Example","pageIndex":1,"pageSize":10},"result":{"selected_id":"507f1f77bcf86cd799439011"}},
+    {"tool":"get_project","input":{"id":"507f1f77bcf86cd799439011"},"result":{"id":"507f1f77bcf86cd799439011","name":"Example","target":"example.com\n192.0.2.0/24","complete":true}},
+    {"tool":"create_project","input":{"name":"Example","target":"example.com\n192.0.2.0/24\nthird.example"},"result":{"success":true}},
+    {"tool":"list_nodes","input":{},"result":{"online_names":["node-1"]}},
+    {"tool":"list_scan_templates","input":{},"result":{"ids":["507f1f77bcf86cd799439022"]}},
+    {"tool":"get_scan_template","input":{"id":"507f1f77bcf86cd799439022"},"result":{"id":"507f1f77bcf86cd799439022","name":"Approved recon"}},
+    {"tool":"create_scan_task","input":{"name":"recon-example","node":["node-1"],"template":"507f1f77bcf86cd799439022","targetSource":"project","project":["507f1f77bcf86cd799439011"]},"result":{"id":"507f1f77bcf86cd799439033"}},
+    {"tool":"get_task","input":{"id":"507f1f77bcf86cd799439033"},"result":{"name":"recon-example","status":"illustrative terminal status; inspect live schema"}},
+    {"tool":"list_assets","input":{"asset_type":"subdomain","pageIndex":1,"pageSize":100,"filter":{"task":["recon-example"],"project":["507f1f77bcf86cd799439011"]}},"result":{"list":[{"host":"a.example.com"}]}},
+    {"tool":"sync_scopesentry_assets","input":{"dimension":"task","targets":["recon-example"],"asset_types":["subdomain","service","app"],"create_company":false},"result":{"synced":{"subdomain":1,"service":0,"app":0,"ip":0},"companies":null,"warnings":null,"errors":null}}
+  ],
+  "failed_reads": [
+    {"error":"get_project failed","complete":false,"allowed_calls":[]},
+    {"error":"","complete":false,"allowed_calls":[]}
+  ]
+}

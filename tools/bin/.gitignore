@@ -1,0 +1,3 @@
+# Keep this directory in Docker's build context, but never track built binaries.
+*
+!.gitignore

@@ -812,10 +812,7 @@ func (s *Server) pgResetTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := r.PathValue("key")
-	for _, sd := range agent.BuiltinToolSeeds() {
-		if sd.Key != key {
-			continue
-		}
+	if sd, ok := s.builtinToolSeed(key); ok {
 		schema, _ := json.Marshal(sd.Schema)
 		agents, _ := json.Marshal(sd.Agents)
 		if err := pg.UpsertToolForce(sd.Key, sd.Desc, schema, agents); err != nil {
@@ -840,6 +837,16 @@ func (s *Server) pgResetTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeErr(w, 404, "tool not found or not built-in: "+key)
+}
+
+// builtinToolSeed selects code defaults without requiring a database connection.
+func (s *Server) builtinToolSeed(key string) (agent.ToolSeed, bool) {
+	for _, seed := range append(agent.BuiltinToolSeeds(), s.scopeSentryToolSeeds()...) {
+		if seed.Key == key {
+			return seed, true
+		}
+	}
+	return agent.ToolSeed{}, false
 }
 
 // ---------- mcp ----------
