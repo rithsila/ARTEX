@@ -84,8 +84,8 @@ export function DocsSidebar() {
         </div>
       </div>
 
-      {/* Sidebar Footer with plenty of bottom clearance (pb-24) to avoid dev tools overlay */}
-      <div className="border-border/60 border-t p-3.5 pb-24 text-xs text-muted-foreground space-y-2.5">
+      {/* Sidebar Footer */}
+      <div className="border-border/60 border-t p-3.5 pb-3.5 text-xs text-muted-foreground space-y-2.5">
         <div className="flex items-center justify-between text-[11px]">
           <span className="font-mono uppercase tracking-wider text-muted-foreground/70">Console Links</span>
         </div>
