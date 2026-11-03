@@ -35,13 +35,13 @@ export function DocCodeBlock({ code, language = "bash", title, className }: DocC
       )}
     >
       {/* Header Bar */}
-      <div className="flex h-9 items-center justify-between border-b border-zinc-800/80 bg-zinc-900/60 px-3.5 text-xs text-zinc-400">
+      <div className="flex h-9 items-center justify-between border-zinc-800/80 border-b bg-zinc-900/60 px-3.5 text-xs text-zinc-400">
         <div className="flex items-center gap-2 font-mono text-[11px]">
           <Terminal className="h-3.5 w-3.5 text-primary" />
           <span>{title ?? language}</span>
         </div>
         <div className="flex items-center gap-2">
-          {language && <span className="font-mono text-[10px] uppercase text-zinc-500">{language}</span>}
+          {language && <span className="font-mono text-[10px] text-zinc-500 uppercase">{language}</span>}
           <Button
             variant="ghost"
             size="icon"
@@ -56,7 +56,7 @@ export function DocCodeBlock({ code, language = "bash", title, className }: DocC
       </div>
 
       {/* Code Area */}
-      <div className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-zinc-200">
+      <div className="overflow-x-auto p-4 font-mono text-xs text-zinc-200 leading-relaxed">
         <pre className="selection:bg-primary/30">
           <code>{code}</code>
         </pre>

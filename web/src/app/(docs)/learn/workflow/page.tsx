@@ -2,20 +2,9 @@
 
 import Link from "next/link";
 
-import {
-  ArrowRight,
-  Cpu,
-  Database,
-  Lock,
-  PauseCircle,
-  ShieldAlert,
-  ShieldCheck,
-  Terminal,
-  Workflow,
-} from "lucide-react";
+import { Cpu, Database, Lock, PauseCircle, ShieldAlert, ShieldCheck, Terminal, Workflow } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 import { DocCallout } from "../_components/doc-callout";
 import { DocCodeBlock } from "../_components/doc-code-block";
@@ -80,7 +69,7 @@ export default function WorkflowPage() {
           </p>
 
           <DocCallout type="info" title="Prerequisites">
-            <ul className="list-disc pl-4 space-y-1 text-xs">
+            <ul className="list-disc space-y-1 pl-4 text-xs">
               <li>Familiarity with basic console operations (Chat, Tasks, Scope, and Approvals).</li>
               <li>Active Go 1.26 backend and PostgreSQL state database.</li>
               <li>Written authorization for any tested target network.</li>
@@ -160,43 +149,43 @@ export default function WorkflowPage() {
             the system pauses execution cleanly:
           </p>
 
-          <div className="rounded-xl border border-border/80 bg-zinc-950 p-5 font-mono text-xs text-zinc-300 space-y-3 shadow-sm">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 space-y-1">
+          <div className="space-y-3 rounded-xl border border-border/80 bg-zinc-950 p-5 font-mono text-xs text-zinc-300 shadow-sm">
+            <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-900/80 p-3">
               <div className="font-semibold text-primary">[1] Tool Request Triggered</div>
-              <p className="text-zinc-400 text-[11px]">
+              <p className="text-[11px] text-zinc-400">
                 Worker prepares to execute:{" "}
                 <code className="text-zinc-200">sqlmap -u &quot;https://test.com/id=1&quot; --batch</code>
               </p>
             </div>
 
-            <div className="flex justify-center text-zinc-500 text-xs">↓ Intercept Rule Evaluation</div>
+            <div className="flex justify-center text-xs text-zinc-500">↓ Intercept Rule Evaluation</div>
 
-            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200 space-y-1">
+            <div className="space-y-1 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-200">
               <div className="font-semibold text-amber-400">
                 [2] Rule Hit: &quot;sqlmap requires human approval&quot;
               </div>
-              <p className="text-amber-200/90 text-[11px]">
+              <p className="text-[11px] text-amber-200/90">
                 Goroutine pauses on Go wait channel:{" "}
                 <code className="font-mono text-amber-300">{"decision := <-waitChan"}</code>. Status set to
                 &quot;pending&quot;.
               </p>
             </div>
 
-            <div className="flex justify-center text-zinc-500 text-xs">↓ WebSocket Notification</div>
+            <div className="flex justify-center text-xs text-zinc-500">↓ WebSocket Notification</div>
 
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 space-y-1">
+            <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-900/80 p-3">
               <div className="font-semibold text-zinc-200">[3] Operator Web Interface</div>
-              <p className="text-zinc-400 text-[11px]">
+              <p className="text-[11px] text-zinc-400">
                 Amber badge lights up on <strong>Approvals</strong> in sidebar. Operator reviews command parameters and
                 clicks <strong>Approve</strong>.
               </p>
             </div>
 
-            <div className="flex justify-center text-zinc-500 text-xs">↓ Channel Resume</div>
+            <div className="flex justify-center text-xs text-zinc-500">↓ Channel Resume</div>
 
-            <div className="rounded-lg border border-primary/40 bg-primary/10 p-3 space-y-1">
+            <div className="space-y-1 rounded-lg border border-primary/40 bg-primary/10 p-3">
               <div className="font-semibold text-primary">[4] Goroutine Resumes</div>
-              <p className="text-zinc-300 text-[11px]">
+              <p className="text-[11px] text-zinc-300">
                 API handler sends <code className="font-mono text-primary">{"waitChan <- ActionApprove"}</code>. Tool
                 begins execution safely.
               </p>
@@ -220,7 +209,7 @@ export default function WorkflowPage() {
                 1
               </span>
               <div>
-                <strong className="text-foreground font-semibold">Scope Banned / Out-of-Scope: </strong>
+                <strong className="font-semibold text-foreground">Scope Banned / Out-of-Scope: </strong>
                 If the destination IP or domain is not explicitly allowed in <em>System &rarr; Scope</em>, the command
                 is immediately aborted. No exceptions.
               </div>
@@ -231,7 +220,7 @@ export default function WorkflowPage() {
                 2
               </span>
               <div>
-                <strong className="text-foreground font-semibold">Intercept Block Rules: </strong>
+                <strong className="font-semibold text-foreground">Intercept Block Rules: </strong>
                 If any active rule matching tool or parameters has action <em>Block</em>, the command is terminated with
                 an error.
               </div>
@@ -242,7 +231,7 @@ export default function WorkflowPage() {
                 3
               </span>
               <div>
-                <strong className="text-foreground font-semibold">Require Approval Rules: </strong>
+                <strong className="font-semibold text-foreground">Require Approval Rules: </strong>
                 If any matching rule has action <em>Require Approval</em>, execution halts until an admin clicks Approve
                 in the web UI.
               </div>
@@ -253,7 +242,7 @@ export default function WorkflowPage() {
                 4
               </span>
               <div>
-                <strong className="text-foreground font-semibold">Allow (Default): </strong>
+                <strong className="font-semibold text-foreground">Allow (Default): </strong>
                 If scope is verified and no block or approval rules trigger, the tool process starts immediately.
               </div>
             </div>
@@ -275,7 +264,7 @@ export default function WorkflowPage() {
           <DocSteps>
             <DocStep number={1} title="Open Rules in System">
               In the left sidebar, click{" "}
-              <Link href="/system/intercept" className="text-primary underline font-medium">
+              <Link href="/system/intercept" className="font-medium text-primary underline">
                 Rules (/system/intercept)
               </Link>{" "}
               under the <strong>SYSTEM</strong> section.

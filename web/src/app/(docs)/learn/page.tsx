@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import {
   Activity,
-  ArrowRight,
   BookOpen,
   CheckCircle2,
   Cpu,
@@ -54,16 +53,16 @@ export default function OverviewPage() {
             inspects web traffic, and asks for your approval before touching dangerous steps.
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
-            <Badge variant="outline" className="border-primary/40 font-mono text-xs text-primary">
+            <Badge variant="outline" className="border-primary/40 font-mono text-primary text-xs">
               Autonomous Planner
             </Badge>
-            <Badge variant="outline" className="border-border/60 font-mono text-xs text-muted-foreground">
+            <Badge variant="outline" className="border-border/60 font-mono text-muted-foreground text-xs">
               MITM Proxy :8788
             </Badge>
-            <Badge variant="outline" className="border-border/60 font-mono text-xs text-muted-foreground">
+            <Badge variant="outline" className="border-border/60 font-mono text-muted-foreground text-xs">
               Human-in-the-Loop Intercept
             </Badge>
-            <Badge variant="outline" className="border-border/60 font-mono text-xs text-muted-foreground">
+            <Badge variant="outline" className="border-border/60 font-mono text-muted-foreground text-xs">
               PostgreSQL 16+
             </Badge>
           </div>
@@ -80,13 +79,13 @@ export default function OverviewPage() {
             proof-of-concept verification while keeping humans in total control of risky actions.
           </p>
 
-          <div className="grid gap-4 sm:grid-cols-2 pt-2">
-            <div className="rounded-xl border border-border/60 bg-card/60 p-5 space-y-2.5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <div className="grid gap-4 pt-2 sm:grid-cols-2">
+            <div className="space-y-2.5 rounded-xl border border-border/60 bg-card/60 p-5">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 What ARTEX Does
               </div>
-              <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+              <ul className="space-y-1.5 text-muted-foreground text-xs leading-relaxed">
                 <li>• Breaks complex penetration testing goals into bite-sized tasks.</li>
                 <li>• Runs tools (nmap, ffuf, nuclei, sqlmap, custom scripts) automatically.</li>
                 <li>• Records every outbound HTTP request through a dedicated MITM proxy.</li>
@@ -94,19 +93,19 @@ export default function OverviewPage() {
               </ul>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/60 p-5 space-y-2.5">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="space-y-2.5 rounded-xl border border-border/60 bg-card/60 p-5">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 System Prerequisites
               </div>
-              <ul className="space-y-1.5 text-xs text-muted-foreground leading-relaxed">
+              <ul className="space-y-1.5 text-muted-foreground text-xs leading-relaxed">
                 <li>
                   • <strong className="text-foreground">Go backend:</strong> Go 1.26+ listening on{" "}
-                  <code className="text-foreground font-mono">:8787</code>.
+                  <code className="font-mono text-foreground">:8787</code>.
                 </li>
                 <li>
                   • <strong className="text-foreground">Database:</strong> PostgreSQL 16+ via{" "}
-                  <code className="text-foreground font-mono">ARTEX_PG_DSN</code>.
+                  <code className="font-mono text-foreground">ARTEX_PG_DSN</code>.
                 </li>
                 <li>
                   • <strong className="text-foreground">AI Model:</strong> API key from OpenAI, Anthropic, or custom
@@ -138,61 +137,61 @@ export default function OverviewPage() {
             persistent SQL storage, and a modern Next.js frontend.
           </p>
 
-          <div className="rounded-xl border border-border/80 bg-zinc-950 p-5 font-mono text-xs text-zinc-300 space-y-4 shadow-sm">
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3.5 space-y-1">
-              <div className="flex items-center justify-between text-primary font-semibold">
+          <div className="space-y-4 rounded-xl border border-border/80 bg-zinc-950 p-5 font-mono text-xs text-zinc-300 shadow-sm">
+            <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-900/80 p-3.5">
+              <div className="flex items-center justify-between font-semibold text-primary">
                 <span>[FRONTEND] Next.js 16 + React 19</span>
-                <span className="text-zinc-500 font-normal">Browser / Port :5173</span>
+                <span className="font-normal text-zinc-500">Browser / Port :5173</span>
               </div>
-              <p className="text-zinc-400 text-[11px]">
+              <p className="text-[11px] text-zinc-400">
                 Sidebar navigation, real-time WebSocket logs, interactive approvals, traffic viewer, and findings
                 manager.
               </p>
             </div>
 
-            <div className="flex justify-center text-zinc-500 text-xs">↓ JSON REST API & WebSocket (/api, /ws)</div>
+            <div className="flex justify-center text-xs text-zinc-500">↓ JSON REST API & WebSocket (/api, /ws)</div>
 
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3.5 space-y-2">
-              <div className="flex items-center justify-between text-primary font-semibold">
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3.5">
+              <div className="flex items-center justify-between font-semibold text-primary">
                 <span>[BACKEND DAEMON] Go 1.26 Engine</span>
-                <span className="text-primary font-normal">HTTP :8787</span>
+                <span className="font-normal text-primary">HTTP :8787</span>
               </div>
-              <div className="grid gap-2 sm:grid-cols-3 pt-1 text-[11px]">
+              <div className="grid gap-2 pt-1 text-[11px] sm:grid-cols-3">
                 <div className="rounded border border-zinc-800/80 bg-zinc-900/60 p-2">
                   <div className="font-semibold text-primary">agent/ Orchestrator</div>
-                  <p className="text-zinc-400 text-[10px]">Planner loop & worker pools.</p>
+                  <p className="text-[10px] text-zinc-400">Planner loop & worker pools.</p>
                 </div>
                 <div className="rounded border border-zinc-800/80 bg-zinc-900/60 p-2">
                   <div className="font-semibold text-primary">guard/ & intercept/</div>
-                  <p className="text-zinc-400 text-[10px]">Scope checks & approval channels.</p>
+                  <p className="text-[10px] text-zinc-400">Scope checks & approval channels.</p>
                 </div>
                 <div className="rounded border border-zinc-800/80 bg-zinc-900/60 p-2">
                   <div className="font-semibold text-primary">skills/ & tools/</div>
-                  <p className="text-zinc-400 text-[10px]">Tool execution & MCP bridge.</p>
+                  <p className="text-[10px] text-zinc-400">Tool execution & MCP bridge.</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-center text-zinc-500 text-xs">↓ Proxy Capture & State Storage</div>
+            <div className="flex justify-center text-xs text-zinc-500">↓ Proxy Capture & State Storage</div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 space-y-1">
+              <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-900/80 p-3">
                 <div className="flex items-center justify-between font-semibold text-zinc-200">
                   <span>MITM Proxy :8788</span>
-                  <span className="text-zinc-500 text-[10px]">SQLite Index</span>
+                  <span className="text-[10px] text-zinc-500">SQLite Index</span>
                 </div>
-                <p className="text-zinc-400 text-[11px]">
+                <p className="text-[11px] text-zinc-400">
                   Streams requests and indexes headers into{" "}
                   <code className="text-zinc-200">data/traffic/_index/index.sqlite</code>.
                 </p>
               </div>
 
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-3 space-y-1">
+              <div className="space-y-1 rounded-lg border border-zinc-800 bg-zinc-900/80 p-3">
                 <div className="flex items-center justify-between font-semibold text-zinc-200">
                   <span>PostgreSQL 16+</span>
-                  <span className="text-zinc-500 text-[10px]">Main DB</span>
+                  <span className="text-[10px] text-zinc-500">Main DB</span>
                 </div>
-                <p className="text-zinc-400 text-[11px]">
+                <p className="text-[11px] text-zinc-400">
                   Stores assets, tasks, findings, intercept rules, and admin settings.
                 </p>
               </div>
@@ -211,47 +210,47 @@ export default function OverviewPage() {
           </p>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <Terminal className="h-4 w-4 text-primary" />
                 1. Planner & Worker Agents
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-xs leading-relaxed">
                 The Planner reads your goal in Chat, queries discovered assets, and breaks the mission into independent
                 Tasks. Worker agents pick tasks from the queue and run security tools.
               </p>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <ShieldAlert className="h-4 w-4 text-primary" />
                 2. Guard & Intercept Engine
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-xs leading-relaxed">
                 Before any tool runs, Guard checks target addresses against allowed Scope. Intercept rules check tool
                 names and parameters. If a rule specifies &quot;Require Approval&quot;, execution freezes until you
                 approve.
               </p>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <Activity className="h-4 w-4 text-primary" />
                 3. MITM Traffic Proxy (:8788)
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-xs leading-relaxed">
                 All inspection tools send outbound traffic through HTTP proxy{" "}
-                <code className="text-foreground font-mono">127.0.0.1:8788</code>. ARTEX records exact request and
+                <code className="font-mono text-foreground">127.0.0.1:8788</code>. ARTEX records exact request and
                 response headers and bodies, making every finding reproducible.
               </p>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <Database className="h-4 w-4 text-primary" />
                 4. Findings & Evidence Store
               </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground text-xs leading-relaxed">
                 When a tool validates an issue (such as SQL injection or an open admin panel), ARTEX creates a Finding
                 with severity, endpoint URL, reproduction steps, and raw request/response proof traces.
               </p>
@@ -334,7 +333,7 @@ Scan https://staging.example.com for input vulnerabilities and enumerate endpoin
             illuminates.
           </DocCallout>
 
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-muted-foreground text-xs leading-relaxed">
             After clicking <strong className="text-foreground">Approve</strong> in the web UI, the worker resumes,
             verifies the SQL injection, and logs a High Severity Finding with the exact HTTP request/response evidence.
           </p>
@@ -350,42 +349,42 @@ Scan https://staging.example.com for input vulnerabilities and enumerate endpoin
             How ARTEX executes commands, stores records, and prevents race conditions:
           </p>
 
-          <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-1.5">
-              <div className="font-semibold text-foreground text-sm flex items-center gap-2">
+          <div className="space-y-3 text-muted-foreground text-xs leading-relaxed">
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <span className="h-2 w-2 rounded-full bg-primary" />
                 Go Advisory Lock (7337741001)
               </div>
               <p>
-                On startup, the Go backend calls <code className="text-foreground font-mono">db.Open()</code> which
-                acquires PostgreSQL advisory lock <code className="text-foreground font-mono">7337741001</code>. This
+                On startup, the Go backend calls <code className="font-mono text-foreground">db.Open()</code> which
+                acquires PostgreSQL advisory lock <code className="font-mono text-foreground">7337741001</code>. This
                 synchronizes embedded SQL schema migrations across instances and prevents migration conflicts.
               </p>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-1.5">
-              <div className="font-semibold text-foreground text-sm flex items-center gap-2">
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <span className="h-2 w-2 rounded-full bg-primary" />
                 MITM Proxy &amp; SQLite Fast Indexing
               </div>
               <p>
-                The recording proxy in <code className="text-foreground font-mono">traffic/</code> listens on port{" "}
-                <code className="text-foreground font-mono">:8788</code>. As requests stream through, body payloads are
+                The recording proxy in <code className="font-mono text-foreground">traffic/</code> listens on port{" "}
+                <code className="font-mono text-foreground">:8788</code>. As requests stream through, body payloads are
                 stored to disk while metadata is indexed into a pure-Go SQLite database (
-                <code className="text-foreground font-mono">data/traffic/_index/index.sqlite</code>).
+                <code className="font-mono text-foreground">data/traffic/_index/index.sqlite</code>).
               </p>
             </div>
 
-            <div className="rounded-xl border border-border/60 bg-card/40 p-4 space-y-1.5">
-              <div className="font-semibold text-foreground text-sm flex items-center gap-2">
+            <div className="space-y-1.5 rounded-xl border border-border/60 bg-card/40 p-4">
+              <div className="flex items-center gap-2 font-semibold text-foreground text-sm">
                 <span className="h-2 w-2 rounded-full bg-primary" />
                 Wait Channels for Human Approval
               </div>
               <p>
                 When a tool call triggers an approval gate in{" "}
-                <code className="text-foreground font-mono">guard/intercept.go</code>, the executing goroutine pauses on
+                <code className="font-mono text-foreground">guard/intercept.go</code>, the executing goroutine pauses on
                 an internal Go response channel. Once the user approves via{" "}
-                <code className="text-foreground font-mono">/api/intercept/action</code>, the channel unblocks and the
+                <code className="font-mono text-foreground">/api/intercept/action</code>, the channel unblocks and the
                 tool starts.
               </p>
             </div>
@@ -396,7 +395,7 @@ Scan https://staging.example.com for input vulnerabilities and enumerate endpoin
         <section id="next-steps" className="scroll-mt-20 space-y-4 border-border/60 border-t pt-8">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-lg text-foreground">Ready to start?</h3>
+              <h3 className="font-semibold text-foreground text-lg">Ready to start?</h3>
               <p className="text-muted-foreground text-xs">
                 Follow our 6-step walkthrough to get ARTEX running and perform your first scan.
               </p>

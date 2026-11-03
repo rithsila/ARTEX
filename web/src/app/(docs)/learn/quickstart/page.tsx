@@ -2,22 +2,9 @@
 
 import Link from "next/link";
 
-import {
-  ArrowRight,
-  Bot,
-  Brain,
-  CheckCircle2,
-  ClipboardList,
-  Lock,
-  Network,
-  Rocket,
-  ShieldCheck,
-  Target,
-  Terminal,
-} from "lucide-react";
+import { Rocket, ShieldCheck, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 
 import { DocCallout } from "../_components/doc-callout";
 import { DocCodeBlock } from "../_components/doc-code-block";
@@ -57,7 +44,7 @@ export default function QuickstartPage() {
             <Badge variant="secondary" className="font-mono text-xs">
               Time to complete: 5 minutes
             </Badge>
-            <Badge variant="outline" className="border-primary/40 font-mono text-xs text-primary">
+            <Badge variant="outline" className="border-primary/40 font-mono text-primary text-xs">
               Beginner Friendly
             </Badge>
           </div>
@@ -153,7 +140,7 @@ export default function QuickstartPage() {
                     Scope (/system/intercept/assets)
                   </Link>
                   . Click <strong>Add Scope Rule</strong>, enter your target domain (such as{" "}
-                  <code className="text-foreground font-mono">testphp.vulnweb.com</code>), and set Action to{" "}
+                  <code className="font-mono text-foreground">testphp.vulnweb.com</code>), and set Action to{" "}
                   <strong>Allow</strong>.
                 </p>
                 <DocCallout type="warning" title="Strict Scope Guard">
@@ -251,20 +238,20 @@ export default function QuickstartPage() {
             What happens behind the scenes during the 6 steps:
           </p>
 
-          <div className="grid gap-3 sm:grid-cols-2 text-xs text-muted-foreground leading-relaxed">
-            <div className="rounded-xl border border-border/60 bg-card p-4 space-y-1">
+          <div className="grid gap-3 text-muted-foreground text-xs leading-relaxed sm:grid-cols-2">
+            <div className="space-y-1 rounded-xl border border-border/60 bg-card p-4">
               <span className="font-semibold text-foreground">PostgreSQL Settings Table</span>
               <p>Passwords and API keys are stored encrypted. Reset is always available via CLI script.</p>
             </div>
-            <div className="rounded-xl border border-border/60 bg-card p-4 space-y-1">
+            <div className="space-y-1 rounded-xl border border-border/60 bg-card p-4">
               <span className="font-semibold text-foreground">WebSocket Streaming</span>
               <p>Chat requests spawn a goroutine streaming token deltas in real-time over WebSocket.</p>
             </div>
-            <div className="rounded-xl border border-border/60 bg-card p-4 space-y-1">
+            <div className="space-y-1 rounded-xl border border-border/60 bg-card p-4">
               <span className="font-semibold text-foreground">Process Sandbox</span>
               <p>Tools run with piped stdout/stderr buffers and strict execution timeouts.</p>
             </div>
-            <div className="rounded-xl border border-border/60 bg-card p-4 space-y-1">
+            <div className="space-y-1 rounded-xl border border-border/60 bg-card p-4">
               <span className="font-semibold text-foreground">Idempotent Asset Upserts</span>
               <p>Discovered hosts and ports are inserted into PostgreSQL with ON CONFLICT DO UPDATE.</p>
             </div>

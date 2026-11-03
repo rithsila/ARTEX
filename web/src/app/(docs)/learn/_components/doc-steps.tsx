@@ -26,7 +26,7 @@ export function DocStep({ number, title, description, children, className }: Doc
       <div className="absolute top-8 bottom-0 left-[15px] w-px bg-border/60 md:left-[19px]" />
 
       {/* Number Badge */}
-      <div className="absolute top-0 left-0 flex h-8 w-8 items-center justify-center rounded-full border border-primary/40 bg-card font-mono text-xs font-semibold text-primary shadow-xs ring-4 ring-background md:h-10 md:w-10 md:text-sm">
+      <div className="absolute top-0 left-0 flex h-8 w-8 items-center justify-center rounded-full border border-primary/40 bg-card font-mono font-semibold text-primary text-xs shadow-xs ring-4 ring-background md:h-10 md:w-10 md:text-sm">
         {number}
       </div>
 
@@ -37,7 +37,7 @@ export function DocStep({ number, title, description, children, className }: Doc
       </div>
 
       {/* Step Content */}
-      <div className="pt-3 text-xs leading-relaxed text-foreground/90">{children}</div>
+      <div className="pt-3 text-foreground/90 text-xs leading-relaxed">{children}</div>
     </div>
   );
 }
