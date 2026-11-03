@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 const AUTH_PAGES = ["/login", "/setup"];
+const PUBLIC_DOCS = ["/learn"];
 
 export function proxy(request: NextRequest) {
   // Mock demo：无真实登录，放行所有页面（客户端 auth 守卫也会放行）。
@@ -10,9 +11,10 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("artex_token")?.value;
   const isAuthPage = AUTH_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  const isPublicDoc = PUBLIC_DOCS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  // 未登录 → 跳转登录页
-  if (!token && !isAuthPage) {
+  // 未登录且非公开/认证页面 → 跳转登录页
+  if (!token && !isAuthPage && !isPublicDoc) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

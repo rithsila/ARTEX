@@ -3181,13 +3181,33 @@ export const agents: Agent[] = [
 
 const promptVars: PromptVar[] = [
   { name: "Goal", description: "Current task goal", example: "Gain admin on acme.com", source: "runtime" },
-  { name: "AssetSummary", description: "Asset graph overview", example: "6 subdomains / 3 IPs / 4 apps / 4 endpoints", source: "distilled" },
-  { name: "RouteHint", description: "Exploration route hint", example: "Prioritize admin and API access-control surface", source: "exploration" },
+  {
+    name: "AssetSummary",
+    description: "Asset graph overview",
+    example: "6 subdomains / 3 IPs / 4 apps / 4 endpoints",
+    source: "distilled",
+  },
+  {
+    name: "RouteHint",
+    description: "Exploration route hint",
+    example: "Prioritize admin and API access-control surface",
+    source: "exploration",
+  },
 ];
 
 const promptVersions: PromptVersion[] = [
-  { version: 3, ts: T("2026-07-25T10:00:00Z"), note: "Stronger access-control guidance", template_text: "You are the ARTEX planner..." },
-  { version: 2, ts: T("2026-07-20T10:00:00Z"), note: "First-pass edit", template_text: "You are the ARTEX planner (v2)..." },
+  {
+    version: 3,
+    ts: T("2026-07-25T10:00:00Z"),
+    note: "Stronger access-control guidance",
+    template_text: "You are the ARTEX planner...",
+  },
+  {
+    version: 2,
+    ts: T("2026-07-20T10:00:00Z"),
+    note: "First-pass edit",
+    template_text: "You are the ARTEX planner (v2)...",
+  },
 ];
 
 export function agentDetail(key: string): AgentDetail {

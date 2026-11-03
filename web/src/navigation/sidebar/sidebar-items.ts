@@ -2,6 +2,7 @@ import {
   Activity,
   Ban,
   BellRing,
+  BookOpen,
   Bot,
   Brain,
   Bug,
@@ -50,6 +51,7 @@ export interface NavMainLinkItem extends NavItemBase {
 }
 
 export interface NavMainParentItem extends NavItemBase {
+  url?: string;
   subItems: NavSubItem[];
 }
 
@@ -93,6 +95,19 @@ export const sidebarItems: NavGroup[] = [
       { id: "approvals", title: "Approvals", url: "/system/intercept/approvals", icon: ClipboardList },
       { id: "logs", title: "Logs", url: "/system/logs", icon: ScrollText },
       { id: "settings", title: "Settings", url: "/system/settings", icon: Settings2 },
+    ],
+  },
+  {
+    id: 3,
+    label: "GUIDE",
+    items: [
+      {
+        id: "learn",
+        title: "Learn",
+        url: "/learn",
+        icon: BookOpen,
+        newTab: true,
+      },
     ],
   },
 ];

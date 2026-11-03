@@ -5,9 +5,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ChevronRight, MailIcon, PlusCircleIcon } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -95,21 +94,30 @@ export function NavMain({ items }: NavMainProps) {
       return rawPath;
     }
   })();
+  const normPath = path.replace(/\/+$/, "") || "/";
 
   const isItemActive = (item: NavMainItem) => {
     if (hasSubItems(item)) {
-      return item.subItems.some((sub) => path.startsWith(sub.url));
+      return item.subItems.some((sub) => {
+        const normSub = sub.url.replace(/\/+$/, "") || "/";
+        return normPath === normSub || normPath.startsWith(`${normSub}/`);
+      });
     }
 
-    return path === item.url;
+    const normUrl = item.url.replace(/\/+$/, "") || "/";
+    return normPath === normUrl || normPath.startsWith(`${normUrl}/`);
   };
 
   const isSubItemActive = (url: string) => {
-    return path === url;
+    const normUrl = url.replace(/\/+$/, "") || "/";
+    return normPath === normUrl;
   };
 
   const isSubmenuOpen = (item: NavMainParentItem) => {
-    return item.subItems.some((sub) => path.startsWith(sub.url));
+    return item.subItems.some((sub) => {
+      const normSub = sub.url.replace(/\/+$/, "") || "/";
+      return normPath === normSub || normPath.startsWith(`${normSub}/`);
+    });
   };
 
   return (
@@ -176,7 +184,7 @@ function InterceptPendingBadge() {
         /* ignore */
       }
     }
-    poll();
+    void poll();
     const t = setInterval(poll, 5000);
     return () => {
       live = false;
@@ -185,7 +193,7 @@ function InterceptPendingBadge() {
   }, []);
   if (count === 0) return null;
   return (
-    <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-1 ring-amber-400/40">
+    <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 font-semibold text-[10px] text-white leading-none shadow-sm ring-1 ring-amber-400/40">
       {count > 99 ? "99+" : count}
     </SidebarMenuBadge>
   );
@@ -203,6 +211,9 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
         >
           <NavLinkIcon item={item} showFallback={showIconFallback} />
           <span>{item.title}</span>
+          {item.newTab && (
+            <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground/60 transition-opacity group-hover/menu-button:text-foreground" />
+          )}
         </Link>
       </SidebarMenuButton>
       {item.id === "approvals" ? <InterceptPendingBadge /> : <NavItemBadge badge={item.badge} />}
