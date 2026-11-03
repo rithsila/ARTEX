@@ -398,7 +398,7 @@ func wireTools(pg *db.DB, domainReg map[string]actool.CoreTool) {
 			}
 		}
 		if len(shellHints) > 0 {
-			note := "\n\n以下工具已安装在此 bash 环境中，可直接通过 Bash 调用：\n" + strings.Join(shellHints, "\n")
+			note := "\n\nThe following tools are installed in this bash environment and can be invoked directly via Bash:\n" + strings.Join(shellHints, "\n")
 			for i, t := range out {
 				if t.Name() == "Bash" {
 					out[i] = agent.DecorateTool(t, t.Description()+note, t.InputSchema())

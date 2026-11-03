@@ -54,7 +54,7 @@ func (s *Server) seedFindingWorkflowTools() {
 		props := objectProperty(schema, "properties")
 		if key == "report_finding" {
 			if _, exists := props["evidence_hint_id"]; !exists {
-				props["evidence_hint_id"] = map[string]any{"type": "integer", "description": "可选：本任务中对应此漏洞的 hint ID；读取该提示保存的 traffic_refs 一并绑定，无提示时省略"}
+				props["evidence_hint_id"] = map[string]any{"type": "integer", "description": "Optional: hint ID corresponding to this vulnerability in the task; binds traffic_refs saved with that hint, omit if no hint"}
 			}
 		} else {
 			if _, exists := props["traffic_refs"]; !exists {
@@ -69,7 +69,7 @@ func (s *Server) seedFindingWorkflowTools() {
 				items["type"] = "object"
 			}
 			itemProps := objectProperty(items, "properties")
-			for name, value := range map[string]any{"text": strParam("提示内容"), "asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}}, "traffic_refs": agent.HintTrafficSchema()} {
+			for name, value := range map[string]any{"text": strParam("Hint content"), "asset_ids": map[string]any{"type": "array", "items": map[string]any{"type": "integer"}}, "traffic_refs": agent.HintTrafficSchema()} {
 				if _, exists := itemProps[name]; !exists {
 					itemProps[name] = value
 				}
@@ -143,8 +143,8 @@ func (s *Server) agentFindingTrafficAccess(ctx context.Context, id int64, write 
 }
 
 func (s *Server) toolBindFindingTraffic() actool.CoreTool {
-	return wrTool("bind_finding_traffic", "为已登记漏洞补绑经核实的真实 HTTP 流量。finding_id 使用独立漏洞记录 ID；不要传探索节点 ID。同批引用全部成功或全部失败，重复引用不覆盖已有说明。补绑会使已有报告标记待更新；不要为补包重新探测或重复创建漏洞。",
-		objSchema(map[string]any{"finding_id": strParam("独立漏洞记录 ID，从 list_task_findings / get_task_node_detail 的 finding_id 字段读取"), "traffic_refs": agent.HintTrafficSchema()}, "finding_id", "traffic_refs"),
+	return wrTool("bind_finding_traffic", "Bind verified HTTP traffic to an existing registered finding. finding_id uses the standalone finding record ID; do not pass the exploration node ID. All references in a batch succeed or fail together; duplicate references do not overwrite existing descriptions. Binding marks existing reports as pending update; do not re-probe or re-create findings just to bind packets.",
+		objSchema(map[string]any{"finding_id": strParam("Standalone finding record ID, read from finding_id field in list_task_findings / get_task_node_detail"), "traffic_refs": agent.HintTrafficSchema()}, "finding_id", "traffic_refs"),
 		func(ctx context.Context, raw json.RawMessage) (actool.Result, error) {
 			if !s.m.pg.GetBool(settingAgentTrafficBinding, false) {
 				return actool.Errorf("Agent automatic traffic binding is disabled; enable in system settings or bind manually via UI."), nil

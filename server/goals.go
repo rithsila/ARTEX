@@ -45,7 +45,7 @@ func (s *Server) startTaskEngine(t *Task) {
 		return
 	}
 	s.engine.emitActivity(t, db.Activity{Worker: "planner", Kind: "round",
-		Summary: "第 0 轮目标拆解"})
+		Summary: "Round 0 goal breakdown"})
 	goals := s.createGoals(ctx, t, func(r db.Activity) {
 		s.engine.emitActivity(t, r)
 	})
@@ -130,10 +130,10 @@ func (s *Server) admitTaskWhen(t *Task, mode string, requirePaused bool) (queued
 	lifecycle := t.lifecycleSnapshot()
 	if requirePaused {
 		if isTerminalStatus(lifecycle.Status) {
-			return false, fmt.Errorf("终态任务不能执行继续")
+			return false, fmt.Errorf("terminal tasks cannot be resumed")
 		}
 		if !lifecycle.Paused {
-			return false, fmt.Errorf("仅已暂停的任务可以继续")
+			return false, fmt.Errorf("only paused tasks can be resumed")
 		}
 		mode = s.resumeAdmissionMode(t)
 	}
@@ -177,8 +177,8 @@ func (s *Server) admitTaskWhen(t *Task, mode string, requirePaused bool) (queued
 	// this ordering, its already-running worker loops can claim the newly-opened
 	// intent in the gap between status=running and queued=true.
 	if shouldQueue || wasTerminal || wasPaused || wasQueued {
-		s.engine.Pause(t.ID, agent.Causef("queued_for_admission", "任务等待运行准入",
-			"任务正在等待并发队列或准入状态提交，本次执行已停止；只有获得运行槽后才会重新领取意图"))
+		s.engine.Pause(t.ID, agent.Causef("queued_for_admission", "Task waiting for admission",
+			"Task is waiting for concurrency queue or admission commit; execution paused until slot is acquired"))
 	}
 
 	status := lifecycle.Status
@@ -199,12 +199,12 @@ func (s *Server) admitTaskWhen(t *Task, mode string, requirePaused bool) (queued
 	}
 	if shouldQueue {
 		if !wasQueued {
-			summary := fmt.Sprintf("已排队：达到并发上限 %d，等待空位后自动开始", limit)
+			summary := fmt.Sprintf("Queued: reached concurrency limit %d, will start automatically when a slot opens", limit)
 			switch {
 			case !ready:
-				summary = "已排队：当前没有可运行的 LLM 配置，配置恢复后自动开始"
+				summary = "Queued: no runnable LLM profile currently available, will start automatically when profile is restored"
 			case readyBacklog:
-				summary = "已排队：已有更早的任务等待运行，将按 FIFO 顺序自动开始"
+				summary = "Queued: earlier tasks waiting to run, will start automatically in FIFO order"
 			}
 			s.engine.emitActivity(t, db.Activity{Worker: "system", Kind: "text", Summary: summary})
 		}
@@ -266,15 +266,15 @@ func (s *Server) reconcileConcurrency() {
 				continue
 			}
 			mode := s.resumeAdmissionMode(task)
-			s.engine.Pause(task.ID, agent.Causef("llm_unavailable_queued", "LLM 不可用，任务进入等待队列",
-				"任务当前无法解析可运行的 Planner/Worker LLM，已释放并发槽；配置恢复后按队列顺序继续"))
+			s.engine.Pause(task.ID, agent.Causef("llm_unavailable_queued", "LLM unavailable, task entered queue",
+				"Task cannot resolve runnable Planner/Worker LLM, concurrency slot released; will resume in queue order once restored"))
 			if err := s.m.EnqueueTask(task.ID, mode); err != nil {
 				s.engine.Resume(task)
 				log.Printf("[concurrency] task %s enqueue failed due to unavailable LLM: %v", task.ID, err)
 				continue
 			}
 			s.engine.emitActivity(task, db.Activity{Worker: "system", Kind: "text",
-				Summary: "已排队：当前没有可运行的 LLM 配置，配置恢复后自动开始"})
+				Summary: "Queued: no runnable LLM profile currently available, will start automatically when profile is restored"})
 		}
 	}
 

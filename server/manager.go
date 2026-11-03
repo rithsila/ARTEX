@@ -331,7 +331,7 @@ func (m *Manager) Workers() int {
 // SetWorkers persists the concurrent work-agent count. Values <=0 are rejected.
 func (m *Manager) SetWorkers(n int) error {
 	if n <= 0 {
-		return fmt.Errorf("workers 必须 >0")
+		return fmt.Errorf("workers must be >0")
 	}
 	return m.pg.SetSetting(settingWorkers, strconv.Itoa(n))
 }
