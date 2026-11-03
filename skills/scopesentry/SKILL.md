@@ -86,6 +86,19 @@ Add to your MCP configuration (`cursor-settings` or `claude_desktop_config.json`
 
 Authentication supports either `X-API-Key: ssk_...` or `Authorization: Bearer ssk_...`.
 
+### 1.4 Configure in ARTEX (Data Source & Skill Grants)
+
+1. **Data Source Setup**:
+   - In ARTEX Settings / Asset Sync, set **MCP Endpoint**: `http://<host>:8082/mcp`.
+   - Set **API Key**: `ssk_...` (in the `X-API-Key` field).
+   - Click **Save & Enable**.
+   - If previously connected and showing 17 tools, click the **Refresh** button in the top-right corner of the card to re-fetch the live tool catalog (discovers all **19** tools including `stop_scan_task` and `resume_scan_task`).
+2. **Grant Skill to Agents**:
+   - Under Agent Settings, enable the `scopesentry` skill for **Auto** (Chat) and/or **Main Agent**.
+3. **Safe Verification Prompt**:
+   - In Chat, run:
+     > Load the scopesentry skill. Discover the live tools. List projects, online nodes, and scan templates. Show IDs and names. Do not create or change anything or scan.
+
 ---
 
 ## 2. Standalone Go CLI Client (`scopesentry`)

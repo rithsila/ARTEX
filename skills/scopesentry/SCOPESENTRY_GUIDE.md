@@ -103,15 +103,15 @@ Add to your `cursor-settings` or `claude_desktop_config.json`:
 ```
 
 ### Option C: Integration in ARTEX
-1. Configure Data Source with URL `http://<host>:8082/mcp`.
-2. Supply the API key generated headlessly via `./ScopeSentry apikey create --name artex`.
-3. ARTEX performs MCP handshake over `/mcp` and binds the 17 security tools.
+1. Configure Data Source in ARTEX (Asset Sync / Settings) with URL `http://<host>:8082/mcp`.
+2. Supply the API key generated headlessly via `./ScopeSentry apikey create --name artex` (format: `ssk_...`).
+3. Click "Save & Enable" (or click "Refresh" if previously cached with 17 tools) — ARTEX connects over `/mcp` and discovers all **19** tools.
 
 ---
 
 ## 4. MCP Tools Reference
 
-ScopeSentry exposes 17 core scanning and asset management tools. All tool schemas and parameter descriptions are native English.
+ScopeSentry exposes 19 core scanning and asset management tools. All tool schemas and parameter descriptions are native English.
 
 ### Project Management
 - `list_projects`: Lists projects grouped by tag.
@@ -129,6 +129,8 @@ ScopeSentry exposes 17 core scanning and asset management tools. All tool schema
 - `list_tasks`: List all scan tasks.
 - `get_task`: Check task status and progress.
 - `create_scan_task`: Launch new scan tasks on target domains/assets.
+- `stop_scan_task`: Request stop for one task: `{"id": "<task ObjectID>"}`.
+- `resume_scan_task`: Request resume for one task: `{"id": "<task ObjectID>"}`.
 - `list_nodes`: List online scanner worker nodes.
 
 ### Plugins & Templates
