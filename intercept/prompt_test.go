@@ -15,6 +15,13 @@ func TestParseVerdict(t *testing.T) {
 			if got.Action != action || got.Reason != reason {
 				t.Fatalf("lost verdict or explanation: %+v", got)
 			}
+
+			engReason := "Action: Writing report containing ALLOW, DENY and ASK; Consequence: Saves text without executing commands in body; Rule: Custom"
+			rawEng, _ := json.Marshal(map[string]string{"decision": action, "comment": engReason})
+			gotEng := ParseVerdict("\n" + string(rawEng) + "\n")
+			if gotEng.Action != action || gotEng.Reason != engReason {
+				t.Fatalf("lost English verdict or explanation: %+v", gotEng)
+			}
 		})
 	}
 }
