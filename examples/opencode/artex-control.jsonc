@@ -1,0 +1,92 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "artex": {
+        "type": "local",
+        "command": [
+          "{env:ARTEX_MCP_BIN}"
+        ],
+        "protocol": "legacy",
+        "environment": {
+          "ARTEX_BASE_URL": "{env:ARTEX_BASE_URL}",
+          "ARTEX_TOKEN_FILE": "{env:ARTEX_TOKEN_FILE}",
+          "ARTEX_MCP_WRITE_ENABLED": "false",
+          "ARTEX_MCP_AUDIT_FILE": "{env:ARTEX_MCP_AUDIT_FILE}"
+        }
+      }
+    }
+  },
+  "permissions": [
+    {
+      "action": "artex_*",
+      "resource": "*",
+      "effect": "ask"
+    },
+    {
+      "action": "artex_health",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_get_settings",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_list_profiles",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_list_agents",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_get_agent",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_list_tasks",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_get_task",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_preview_setting_change",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_preview_agent_change",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_preview_prompt_change",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_preview_profile_activation",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_preview_task_control",
+      "resource": "*",
+      "effect": "allow"
+    },
+    {
+      "action": "artex_apply_change",
+      "resource": "*",
+      "effect": "ask"
+    }
+  ]
+}

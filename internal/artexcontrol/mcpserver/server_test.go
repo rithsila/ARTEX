@@ -3,6 +3,8 @@ package mcpserver_test
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -320,5 +322,126 @@ func TestApplyUnknownID(t *testing.T) {
 	})
 	if err == nil && (callRes == nil || !callRes.IsError) {
 		t.Fatalf("expected error for unknown change ID")
+	}
+}
+
+func TestOpenCodeExamplePermissions(t *testing.T) {
+	configPath := filepath.Join("..", "..", "..", "examples", "opencode", "artex-control.jsonc")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("failed to read %s: %v", configPath, err)
+	}
+
+	var root struct {
+		Schema string `json:"$schema"`
+		MCP    struct {
+			Servers map[string]struct {
+				Type        string            `json:"type"`
+				Command     []string          `json:"command"`
+				Protocol    string            `json:"protocol"`
+				Environment map[string]string `json:"environment"`
+			} `json:"servers"`
+		} `json:"mcp"`
+		Permissions []struct {
+			Action   string `json:"action"`
+			Resource string `json:"resource"`
+			Effect   string `json:"effect"`
+		} `json:"permissions"`
+	}
+
+	if err := json.Unmarshal(data, &root); err != nil {
+		t.Fatalf("failed to parse %s as JSON: %v", configPath, err)
+	}
+
+	serverName := "artex"
+	server, ok := root.MCP.Servers[serverName]
+	if !ok {
+		t.Fatalf("missing %q in mcp.servers", serverName)
+	}
+
+	if server.Type != "local" {
+		t.Errorf("expected mcp.servers.artex.type=local, got %q", server.Type)
+	}
+	if len(server.Command) != 1 || server.Command[0] != "{env:ARTEX_MCP_BIN}" {
+		t.Errorf("expected command [\"{env:ARTEX_MCP_BIN}\"], got %v", server.Command)
+	}
+	if server.Protocol != "legacy" {
+		t.Errorf("expected protocol legacy, got %q", server.Protocol)
+	}
+
+	if server.Environment["ARTEX_MCP_WRITE_ENABLED"] != "false" {
+		t.Errorf("expected ARTEX_MCP_WRITE_ENABLED=false, got %q", server.Environment["ARTEX_MCP_WRITE_ENABLED"])
+	}
+
+	// Verify environment variables reference env substitutions, no literal tokens
+	for k, v := range server.Environment {
+		if k == "ARTEX_TOKEN_FILE" && v != "{env:ARTEX_TOKEN_FILE}" {
+			t.Errorf("ARTEX_TOKEN_FILE must be an env placeholder, got literal %q", v)
+		}
+		if k == "ARTEX_BASE_URL" && v != "{env:ARTEX_BASE_URL}" {
+			t.Errorf("ARTEX_BASE_URL must be an env placeholder, got literal %q", v)
+		}
+		if k == "ARTEX_MCP_AUDIT_FILE" && v != "{env:ARTEX_MCP_AUDIT_FILE}" {
+			t.Errorf("ARTEX_MCP_AUDIT_FILE must be an env placeholder, got literal %q", v)
+		}
+	}
+
+	// Check permissions sequence
+	if len(root.Permissions) == 0 {
+		t.Fatalf("expected permissions array, got empty")
+	}
+
+	// First: catch-all ask
+	if root.Permissions[0].Action != "artex_*" || root.Permissions[0].Effect != "ask" {
+		t.Errorf("expected first permission rule artex_* ask, got %+v", root.Permissions[0])
+	}
+
+	expectedAllows := []string{
+		"artex_health",
+		"artex_get_settings",
+		"artex_list_profiles",
+		"artex_list_agents",
+		"artex_get_agent",
+		"artex_list_tasks",
+		"artex_get_task",
+		"artex_preview_setting_change",
+		"artex_preview_agent_change",
+		"artex_preview_prompt_change",
+		"artex_preview_profile_activation",
+		"artex_preview_task_control",
+	}
+
+	allowMap := make(map[string]bool)
+	var finalRuleIdx int
+	for idx, p := range root.Permissions {
+		if p.Action == "artex_apply_change" {
+			finalRuleIdx = idx
+			if p.Effect != "ask" {
+				t.Errorf("expected artex_apply_change effect ask, got %q", p.Effect)
+			}
+		} else if p.Effect == "allow" {
+			allowMap[p.Action] = true
+		}
+	}
+
+	if finalRuleIdx == 0 {
+		t.Errorf("missing artex_apply_change rule")
+	}
+
+	// Assert no broad allow after the final ask
+	for i := finalRuleIdx + 1; i < len(root.Permissions); i++ {
+		if root.Permissions[i].Effect == "allow" {
+			t.Errorf("found forbidden allow rule after artex_apply_change: %+v", root.Permissions[i])
+		}
+	}
+
+	// Assert exactly 12 allow rules
+	if len(allowMap) != 12 {
+		t.Errorf("expected exactly 12 allow rules (7 reads + 5 previews), got %d (%+v)", len(allowMap), allowMap)
+	}
+	for _, expected := range expectedAllows {
+		if !allowMap[expected] {
+			t.Errorf("missing expected allow rule for %s", expected)
+		}
 	}
 }
