@@ -33,14 +33,20 @@ func makeResult(v any) (*mcp.CallToolResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to format tool result: %w", err)
 	}
-	return &mcp.CallToolResult{
+	res := &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: string(data),
 			},
 		},
-		StructuredContent: data,
-	}, nil
+	}
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) > 0 && trimmed[0] == '{' {
+		res.StructuredContent = json.RawMessage(data)
+	} else if len(trimmed) > 0 && trimmed[0] == '[' {
+		res.StructuredContent = map[string]any{"items": v}
+	}
+	return res, nil
 }
 
 // New creates and configures a new MCP Server for ARTEX control.
