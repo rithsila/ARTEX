@@ -33,20 +33,13 @@ func makeResult(v any) (*mcp.CallToolResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to format tool result: %w", err)
 	}
-	res := &mcp.CallToolResult{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
 				Text: string(data),
 			},
 		},
-	}
-	trimmed := bytes.TrimSpace(data)
-	if len(trimmed) > 0 && trimmed[0] == '{' {
-		res.StructuredContent = json.RawMessage(data)
-	} else if len(trimmed) > 0 && trimmed[0] == '[' {
-		res.StructuredContent = map[string]any{"items": v}
-	}
-	return res, nil
+	}, nil
 }
 
 // New creates and configures a new MCP Server for ARTEX control.
@@ -104,6 +97,9 @@ func New(s *control.Service, changes *control.ChangeManager, opts Options) *mcp.
 	})
 
 	// 3. list_profiles
+	type profilesOutput struct {
+		Profiles []control.Profile `json:"profiles"`
+	}
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_profiles",
 		Description: "List available LLM model profiles without exposing credentials.",
@@ -111,20 +107,24 @@ func New(s *control.Service, changes *control.ChangeManager, opts Options) *mcp.
 			ReadOnlyHint:   true,
 			IdempotentHint: true,
 		},
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in emptyInput) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in emptyInput) (*mcp.CallToolResult, profilesOutput, error) {
 		var check emptyInput
 		if err := checkNoUnknownFields(req.Params.Arguments, &check); err != nil {
-			return nil, nil, err
+			return nil, profilesOutput{}, err
 		}
 		p, err := s.Profiles(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, profilesOutput{}, err
 		}
-		res, err := makeResult(p)
-		return res, p, err
+		out := profilesOutput{Profiles: p}
+		res, err := makeResult(out)
+		return res, out, err
 	})
 
 	// 4. list_agents
+	type agentsOutput struct {
+		Agents []control.Agent `json:"agents"`
+	}
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "list_agents",
 		Description: "List configured ARTEX agents with supported budget and model bindings.",
@@ -132,17 +132,18 @@ func New(s *control.Service, changes *control.ChangeManager, opts Options) *mcp.
 			ReadOnlyHint:   true,
 			IdempotentHint: true,
 		},
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in emptyInput) (*mcp.CallToolResult, any, error) {
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in emptyInput) (*mcp.CallToolResult, agentsOutput, error) {
 		var check emptyInput
 		if err := checkNoUnknownFields(req.Params.Arguments, &check); err != nil {
-			return nil, nil, err
+			return nil, agentsOutput{}, err
 		}
 		agents, err := s.Agents(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, agentsOutput{}, err
 		}
-		res, err := makeResult(agents)
-		return res, agents, err
+		out := agentsOutput{Agents: agents}
+		res, err := makeResult(out)
+		return res, out, err
 	})
 
 	// 5. get_agent
