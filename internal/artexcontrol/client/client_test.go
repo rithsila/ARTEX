@@ -50,6 +50,11 @@ func TestNewValidatesEndpoint(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "valid private lan ip http",
+			baseURL: "http://10.10.23.5:8787",
+			wantErr: false,
+		},
+		{
 			name:    "valid https non-loopback",
 			baseURL: "https://artex.example.com",
 			wantErr: false,

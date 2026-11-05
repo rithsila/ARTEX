@@ -34,8 +34,8 @@ type Client struct {
 	httpClient *http.Client
 }
 
-// isLoopbackHost checks whether a hostname/ip string represents loopback.
-func isLoopbackHost(hostPort string) bool {
+// isLoopbackOrPrivateHost checks whether a hostname/ip string represents loopback or private LAN IP.
+func isLoopbackOrPrivateHost(hostPort string) bool {
 	host, _, err := net.SplitHostPort(hostPort)
 	if err != nil {
 		host = hostPort
@@ -45,7 +45,7 @@ func isLoopbackHost(hostPort string) bool {
 		return true
 	}
 	ip := net.ParseIP(host)
-	if ip != nil && ip.IsLoopback() {
+	if ip != nil && (ip.IsLoopback() || ip.IsPrivate()) {
 		return true
 	}
 	return false
@@ -85,8 +85,8 @@ func New(opts Options) (*Client, error) {
 		return nil, errors.New("base URL must not contain a fragment")
 	}
 
-	if u.Scheme == "http" && !isLoopbackHost(u.Host) {
-		return nil, errors.New("plain HTTP is permitted only for loopback addresses")
+	if u.Scheme == "http" && !isLoopbackOrPrivateHost(u.Host) {
+		return nil, errors.New("plain HTTP is permitted only for loopback or private network addresses")
 	}
 
 	timeout := opts.Timeout
