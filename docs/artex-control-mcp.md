@@ -56,9 +56,9 @@ chmod 0755 "$HOME/.local/bin/artex-mcp"
 ### Step 1: Obtain a Token
 Obtain an admin JWT via the ARTEX login endpoint:
 ```bash
-curl -s -X POST http://127.0.0.1:8787/api/login \
+curl -s -X POST http://10.10.23.5:8787/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"password":"<your_admin_password>"}' | jq -r .token > /path/to/artex.jwt
+  -d '{"username":"ARTEX","password":"<your_admin_password>"}' | jq -r .token > ~/.config/artex/token.jwt
 ```
 
 ### Step 2: Secure the Token File
