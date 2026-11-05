@@ -4,7 +4,7 @@
 
 AI autonomous penetration testing system. Multi-agent LLM, Go backend, Next.js frontend.
 
-[![Release](https://img.shields.io/github/v/release/trhhubsd/ARTEX)](https://github.com/trhhubsd/ARTEX/releases)
+[![Release](https://img.shields.io/github/v/release/rithsila/ARTEX)](https://github.com/rithsila/ARTEX/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
 </div>
@@ -66,7 +66,7 @@ Supports direct asset synchronization from [ScopeSentry](https://github.com/Autu
 ### Method 1: One-Click Installation Script (Recommended)
 
 ```bash
-git clone https://github.com/trhhubsd/ARTEX
+git clone https://github.com/rithsila/ARTEX
 cd ARTEX
 ./install.sh
 ```
@@ -81,10 +81,10 @@ Once installed, visit **http://localhost:8787** (initial setup at `/setup` to cr
 ### Method 2: Docker Compose (Recommended)
 
 ```bash
-git clone https://github.com/trhhubsd/ARTEX
+git clone https://github.com/rithsila/ARTEX
 cd ARTEX
 cp .env.example .env          # Set POSTGRES_PASSWORD, optional ANTHROPIC_API_KEY
-docker compose up -d          # Pulls tomicdd/artex image + postgres
+docker compose up -d          # Pulls rithsila/artex image + postgres
 # → http://localhost:8787
 ```
 
@@ -165,7 +165,7 @@ docker image prune -f          # Clean up old images (optional)
 
 ### Method 4: Precompiled Binaries (Releases)
 
-Download the latest release zip from [Releases](https://github.com/trhhubsd/ARTEX/releases), stop the running process, replace `artex` and `skills/` (retaining your `config.json` and `data/`), and restart:
+Download the latest release zip from [Releases](https://github.com/rithsila/ARTEX/releases), stop the running process, replace `artex` and `skills/` (retaining your `config.json` and `data/`), and restart:
 
 ```bash
 cp -r <extracted_directory>/skills ./ && cp <extracted_directory>/artex ./
@@ -443,7 +443,7 @@ Scan the QR code to follow the WeChat Official Account **SecSentry**, and send a
 
 ---
 
-This repository actively maintains [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX) (AGPL-3.0). To stay synced with subsequent releases, please fork [trhhubsd/ARTEX](https://github.com/trhhubsd/ARTEX).
+This repository actively maintains [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX) (AGPL-3.0). To stay synced with subsequent releases, please fork [rithsila/ARTEX](https://github.com/rithsila/ARTEX).
 
 ## References
 

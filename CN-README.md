@@ -6,7 +6,7 @@ AI autonomous penetration testing system. Multi-agent LLM, Go backend, Next.js f
 
 AI 自主渗透测试系统（Go 后端 + Next.js 前端）。
 
-[![Release](https://img.shields.io/github/v/release/trhhubsd/ARTEX)](https://github.com/trhhubsd/ARTEX/releases)
+[![Release](https://img.shields.io/github/v/release/rithsila/ARTEX)](https://github.com/rithsila/ARTEX/releases)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
 </div>
@@ -71,7 +71,7 @@ ARTEX is a multi-agent system for autonomous penetration testing in an isolated 
 ### 方式一：一键安装脚本（推荐）
 
 ```bash
-git clone https://github.com/trhhubsd/ARTEX
+git clone https://github.com/rithsila/ARTEX
 cd ARTEX
 ./install.sh
 ```
@@ -86,10 +86,10 @@ cd ARTEX
 ### 方式二：Docker Compose（推荐）
 
 ```bash
-git clone https://github.com/trhhubsd/ARTEX
+git clone https://github.com/rithsila/ARTEX
 cd ARTEX
 cp .env.example .env          # 填 POSTGRES_PASSWORD、可选 ANTHROPIC_API_KEY
-docker compose up -d          # 拉取 tomicdd/artex 镜像 + postgres
+docker compose up -d          # 拉取 rithsila/artex 镜像 + postgres
 # → http://localhost:8787
 ```
 
@@ -172,7 +172,7 @@ docker image prune -f          # 清理旧镜像（可选）
 
 ### 方式四：预编译二进制（Releases）
 
-到 [Releases](https://github.com/trhhubsd/ARTEX/releases) 下载新版本 zip，停掉旧进程后覆盖 `artex` 与 `skills/`（保留你的 `config.json` 与 `data/`），重启即可：
+到 [Releases](https://github.com/rithsila/ARTEX/releases) 下载新版本 zip，停掉旧进程后覆盖 `artex` 与 `skills/`（保留你的 `config.json` 与 `data/`），重启即可：
 
 ```bash
 cp -r <解压目录>/skills ./ && cp <解压目录>/artex ./
@@ -451,7 +451,7 @@ flowchart TB
 </div>
 
 ---
-本仓库继续维护 [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX)（AGPL-3.0）。要跟上后续版本，请 fork [trhhubsd/ARTEX](https://github.com/trhhubsd/ARTEX)。
+本仓库继续维护 [Autumn-27/ARTEX](https://github.com/Autumn-27/ARTEX)（AGPL-3.0）。要跟上后续版本，请 fork [rithsila/ARTEX](https://github.com/rithsila/ARTEX)。
 
 ## 参考
 
