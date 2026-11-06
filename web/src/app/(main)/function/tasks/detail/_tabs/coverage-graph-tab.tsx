@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { api } from "@/lib/api";
 import type { CoverageAssetRef, CoverageAssetRefs, CoverageGraphEdge, CoverageGraphNode } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
 // 每个父节点下、同一类型的子节点默认展示的数量；超出折叠，"展示更多"每次再拉这么多。
 const FOLD_LIMIT = 20;
@@ -227,16 +228,16 @@ function toG6Nodes(renderNodes: RenderNode[]): G6NodeDatum[] {
 const nd = (d: unknown) => d as G6NodeDatum;
 
 // 已测=实色高亮；范围内未测=灰；范围外/折叠=更淡的灰 + 虚线描边。
-function nodeFill(d: G6NodeDatum): string {
-  if (d.fold) return "#f1f5f9";
-  if (!d.inScope) return "#e2e8f0";
+function nodeFill(d: G6NodeDatum, dark = false): string {
+  if (d.fold) return dark ? "#1e293b" : "#f1f5f9";
+  if (!d.inScope) return dark ? "#0f172a" : "#e2e8f0";
   if (d.tested) return kindMeta[d.kind].hex;
-  return "#94a3b8";
+  return dark ? "#64748b" : "#94a3b8";
 }
-function nodeStroke(d: G6NodeDatum): string {
-  if (d.fold || !d.inScope) return "#94a3b8";
-  if (d.tested) return "#0f766e";
-  return "#64748b";
+function nodeStroke(d: G6NodeDatum, dark = false): string {
+  if (d.fold || !d.inScope) return dark ? "#475569" : "#94a3b8";
+  if (d.tested) return dark ? "#2dd4bf" : "#0f766e";
+  return dark ? "#475569" : "#64748b";
 }
 
 // ---------------------------------------------------------------------------
@@ -447,6 +448,9 @@ function FoldSheet({
 
 // ---------------------------------------------------------------------------
 function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; coverageEnabled?: boolean }) {
+  const resolvedThemeMode = usePreferencesStore((s) => s.resolvedThemeMode);
+  const isDark = resolvedThemeMode === "dark";
+
   const [data, setData] = React.useState<{
     nodes: CoverageGraphNode[];
     edges: CoverageGraphEdge[];
@@ -535,12 +539,12 @@ function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; covera
         container: containerRef.current,
         autoResize: true,
         autoFit: "view",
-        background: "#f0f2f7",
+        background: isDark ? "transparent" : "#f0f2f7",
         node: {
           style: {
             size: (d: unknown) => nd(d).size,
-            fill: (d: unknown) => nodeFill(nd(d)),
-            stroke: (d: unknown) => nodeStroke(nd(d)),
+            fill: (d: unknown) => nodeFill(nd(d), isDark),
+            stroke: (d: unknown) => nodeStroke(nd(d), isDark),
             lineWidth: (d: unknown) => (nd(d).fold || !nd(d).inScope ? 1 : 1.5),
             lineDash: (d: unknown) => (nd(d).fold || !nd(d).inScope ? [3, 3] : [0]),
             iconSrc: (d: unknown) => (nd(d).fold ? FOLD_ICON : KIND_ICON[nd(d).kind]),
@@ -549,15 +553,15 @@ function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; covera
             labelText: (d: unknown) => nd(d).lbl,
             labelFontSize: 10,
             labelPlacement: "bottom",
-            labelFill: "#475569",
+            labelFill: isDark ? "#cbd5e1" : "#475569",
             labelBackground: true,
-            labelBackgroundFill: "rgba(255,255,255,0.75)",
+            labelBackgroundFill: isDark ? "rgba(15,23,42,0.85)" : "rgba(255,255,255,0.75)",
             labelBackgroundRadius: 3,
             labelPadding: [1, 3],
           },
         },
         edge: {
-          style: { stroke: "#cbd5e1", lineWidth: 1, endArrow: false },
+          style: { stroke: isDark ? "#334155" : "#cbd5e1", lineWidth: 1, endArrow: false },
         },
         layout: {
           type: "d3-force",
@@ -600,7 +604,7 @@ function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; covera
       graph?.destroy();
       graphRef.current = null;
     };
-  }, [applyData]);
+  }, [applyData, isDark]);
 
   // 可见集合变化 → 重新灌数据 + 布局。sig 只作为重排触发器（applyData 读 gDataRef）。
   // biome-ignore lint/correctness/useExhaustiveDependencies: sig 是刻意的重排触发依赖
@@ -681,7 +685,7 @@ function GraphInner({ taskId, coverageEnabled = true }: { taskId: string; covera
             </>
           )}
           <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-full border border-dashed border-neutral-400 bg-neutral-200" /> Out of Scope
+            <span className="size-3 rounded-full border border-dashed border-neutral-400 bg-neutral-200 dark:border-neutral-500 dark:bg-neutral-800" /> Out of Scope
           </span>
         </div>
         <p className="text-muted-foreground/80 border-border/60 border-t pt-2 leading-relaxed">
