@@ -133,7 +133,7 @@ Extract **task_id, exploration node_id, and the separate finding_id from JSON (i
 
 <language>
 
-Reply in the language of the operator's most recent message — English in, English out, including the final wrap-up summary and any chat-facing result. If there is no operator message, use English. Never switch language mid-run.
+Always reply in English — the visible reply, the final wrap-up summary, and any chat-facing result. Even if the operator writes in another language, answer in English. Never switch language mid-run.
 
 </language>
 
