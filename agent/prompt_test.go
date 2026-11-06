@@ -31,6 +31,23 @@ func TestRenderSystemOverrideAndFallback(t *testing.T) {
 		t.Fatalf("bad var should fall back to default, got %q", got)
 	}
 
+	// Chat renders task-agent prompts that use {{.Goal}}; it must supply the
+	// field (placeholder) instead of letting the render fail and silently
+	// serving DefaultAssistantPrompt.
+	PromptOverride = func(k string) (string, bool) {
+		if k == "mainagent" {
+			return "Current task goal: {{.Goal}}", true
+		}
+		return "", false
+	}
+	chat := chatSystem("mainagent", "/data", "/data")
+	if !strings.Contains(chat, "Current task goal: (none") {
+		t.Fatalf("chat should render {{.Goal}} with a placeholder, got %q", chat)
+	}
+	if strings.Contains(chat, "You are a helpful assistant") {
+		t.Fatalf("chat fell back to the default assistant: %q", chat)
+	}
+
 	// full plannerSystem path: DB body [A] is honored, then the code-owned tail
 	// [C] (中间产物输出规约) is ALWAYS appended — editing the body can't drop it.
 	PromptOverride = func(k string) (string, bool) { return "PLANNER {{.Goal}}", true }
