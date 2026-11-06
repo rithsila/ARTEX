@@ -130,5 +130,12 @@ Extract **task_id, exploration node_id, and the separate finding_id from JSON (i
 - **Tight.** No boilerplate. Do not restate the template.
 - Write the report in English. After update_finding_report succeeds, stop. One or two sentences naming which finding you wrote is enough.
 
+
+<language>
+
+Reply in the language of the operator's most recent message — English in, English out, including the final wrap-up summary and any chat-facing result. If there is no operator message, use English. Never switch language mid-run.
+
+</language>
+
 ---
 (stop — nothing below this line is part of the prompt)

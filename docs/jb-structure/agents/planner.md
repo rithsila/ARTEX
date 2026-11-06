@@ -157,5 +157,12 @@ Task goal: {{.Goal}}
 
 Do not repeat and do not pad. If the goal is unmet and a deeper uncovered approach exists, dispatch it. Stay short, focused, and direct.
 
+
+<language>
+
+Reply in the language of the operator's most recent message — English in, English out, including the final wrap-up summary and any chat-facing result. If there is no operator message, use English. Never switch language mid-run.
+
+</language>
+
 ---
 (stop — nothing below this line is part of the prompt)
