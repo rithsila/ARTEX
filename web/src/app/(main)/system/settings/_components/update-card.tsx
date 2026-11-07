@@ -134,12 +134,7 @@ export function UpdateCard() {
     if (!info) return;
     const from = info.current;
     const ok = window.confirm(
-      `Confirm upgrade to ${info.latest}?\n\n` +
-        "The process will restart and any active tasks will terminate.\n" +
-        (info.mode === "docker"
-          ? "\nNotice: In-container upgrade replaces the binary only; bundled toolchains (playwright/nmap) are unaffected." +
-            " Use 'docker compose pull' for full base image upgrades."
-          : ""),
+      `Confirm upgrade to ${info.latest}?\n\nRestart will terminate any running tasks.`,
     );
     if (!ok) return;
 
@@ -256,9 +251,8 @@ export function UpdateCard() {
 
         {info?.has_update && info.asset_available !== false && (
           <p className="text-xs text-muted-foreground">
-            Will download <span className="font-mono">{info.asset}</span>
-            {info.size ? ` (${humanSize(info.size)})` : ""}, verify SHA256 checksum, run smoke tests before binary swap,
-            and rollback automatically on fault.
+            Download <span className="font-mono">{info.asset}</span>
+            {info.size ? ` (${humanSize(info.size)})` : ""} and restart.
           </p>
         )}
 
@@ -271,11 +265,9 @@ export function UpdateCard() {
 
         {info?.mode === "docker" && info.has_update && (
           <p className="text-xs text-muted-foreground">
-            Docker in-container updates swap the binary only. Toolchains (playwright/nmap) remain at container build
-            versions, and
-            <span className="font-mono"> docker compose up -d </span>
-            resets to base image. For full container upgrades, run
-            <span className="font-mono"> docker compose pull artex &amp;&amp; docker compose up -d artex</span>.
+            Docker: binary-only update —{" "}
+            <span className="font-mono">docker compose pull artex &amp;&amp; docker compose up -d artex</span> for full
+            image upgrades.
           </p>
         )}
 
@@ -311,11 +303,6 @@ export function UpdateCard() {
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          In-place updates depend on runner scripts for process restart. Ensure ARTEX is launched via{" "}
-          <span className="font-mono">start.sh</span> (Windows:
-          <span className="font-mono"> start.bat</span>); standalone binary execution will not respawn on exit code 75.
-        </p>
       </CardContent>
     </Card>
   );

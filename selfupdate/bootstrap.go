@@ -192,12 +192,23 @@ func smokeTest(bin string) error {
 //
 // Unix 和 Windows 都允许 rename 一个正在运行的可执行文件（Windows 禁止的是删除和
 // 覆盖，rename 不在其列），所以这里不需要分平台，也不需要先停掉自己。
+// 例外：把二进制以单文件 bind-mount 挂进容器（-v /host/artex:/app/artex）时，
+// /app/artex 是挂载点 —— rename 必然 EBUSY，且挂载点既不能被 rename 覆盖也不能
+// 原地写入，原位换装在这种部署形态下结构上不可行。此时给出可操作的指引而不是
+// 裸报错（换目录挂载 / 宿主机替换文件后重启容器 / 走镜像升级）。
 func swap(p Paths) error {
 	// Windows 的 rename 不会覆盖已存在的目标，上一轮升级留下的 .old 必须先清掉。
 	if err := os.Remove(p.Old); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("清理旧备份 %s: %w", p.Old, err)
 	}
 	if err := os.Rename(p.Current, p.Old); err != nil {
+		if busyErr(err) {
+			return fmt.Errorf(
+				"无法原位换装: %s 是单文件挂载（device busy），挂载点不能被 rename 或覆盖。"+
+					"解决办法: ① 在宿主机替换被挂载的文件后 docker restart 容器; "+
+					"② 改为挂载目录而非单文件; ③ 镜像部署用 docker compose pull artex && docker compose up -d artex: %w",
+				p.Current, err)
+		}
 		return fmt.Errorf("备份当前版本: %w", err)
 	}
 	if err := os.Rename(p.New, p.Current); err != nil {
