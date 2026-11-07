@@ -200,7 +200,11 @@ func (s *Server) toolListTasks() actool.CoreTool {
 				} else if end > t.CreatedAt {
 					dur = end - t.CreatedAt
 				}
-				row := map[string]any{"id": t.ID, "description": t.Description, "goal": t.Goal, "status": status, "run_seconds": dur}
+			goalPreview := t.Goal
+				if len(goalPreview) > 200 {
+					goalPreview = goalPreview[:200] + "... (truncated)"
+				}
+				row := map[string]any{"id": t.ID, "description": t.Description, "goal": goalPreview, "goal_len": len(t.Goal), "status": status, "run_seconds": dur}
 				if t.ParentRef != "" {
 					row["parent_ref"] = t.ParentRef
 				}
@@ -347,8 +351,11 @@ func (s *Server) toolPauseTask() actool.CoreTool {
 }
 
 func (s *Server) toolGetTaskGraph() actool.CoreTool {
-	return roTool("get_task_graph", "Read exploration graph overview of a task (asset counts, frontier, findings, coverage). Specify task using task_id.",
-		objSchema(map[string]any{"task_id": strParam("Task ID")}, "task_id"),
+	return roTool("get_task_graph", "Read exploration graph overview of a task (asset counts, frontier, findings, coverage). Specify task using task_id. Set summary=false for full graph.",
+		objSchema(map[string]any{
+			"task_id": strParam("Task ID"),
+			"summary": map[string]any{"type": "boolean", "description": "When true (default), returns a compact summary posture to save tokens. Set false for full graph."},
+		}, "task_id"),
 		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
 			return s.delegateToTask(ctx, in, (*agent.ToolSet).GraphOverviewTool)
 		})

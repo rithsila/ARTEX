@@ -340,10 +340,20 @@ func jsonResult(v any) (actool.Result, error) {
 
 func (t *ToolSet) graphOverview() actool.CoreTool {
 	return t.readExpTool("graph_overview",
-		"Exploration posture digest: asset counts, sites with no endpoints, frontier, findings, and hints (strategic notes from humans or the main agent that must be considered when generating intents). Call it first when planning.",
-		obj(map[string]any{}),
-		func(context.Context, json.RawMessage) (actool.Result, error) {
-			return jsonResult(t.graphOverviewData())
+		"Exploration posture digest: asset counts, sites with no endpoints, frontier, findings, and hints (strategic notes from humans or the main agent that must be considered when generating intents). Call it first when planning. Set summary=false for full graph.",
+		obj(map[string]any{
+			"summary": map[string]any{"type": "boolean", "description": "When true (default), returns a compact summary posture."},
+		}),
+		func(ctx context.Context, in json.RawMessage) (actool.Result, error) {
+			var args struct {
+				Summary *bool `json:"summary"`
+			}
+			_ = json.Unmarshal(in, &args)
+			isSummary := true
+			if args.Summary != nil {
+				isSummary = *args.Summary
+			}
+			return jsonResult(t.graphOverviewDataOpt(isSummary))
 		})
 }
 
@@ -352,6 +362,12 @@ func (t *ToolSet) graphOverview() actool.CoreTool {
 // the model needn't spend a turn calling the tool — every plan round starts with
 // an empty context and always needs this first).
 func (t *ToolSet) graphOverviewData() map[string]any {
+	return t.graphOverviewDataOpt(false)
+}
+
+func (t *ToolSet) graphOverviewDataOpt(summary bool) map[string]any {
+	// If summary is true, we cap the lists and truncate heavy payloads.
+	// Otherwise return the full exploration graph.
 	out := map[string]any{}
 	// goals summary folded in so the planner needn't call list_goals each round.
 	goals, _ := t.ts.ListByKind(db.KindGoal, 100)
@@ -408,7 +424,8 @@ func (t *ToolSet) graphOverviewData() map[string]any {
 		hotAtRender = cg.hotSet()
 	}
 	hidden := func(id int64) bool { _, c := covered[id]; return c && !hotAtRender[id] }
-	const openIntentsCap = 30
+	openIntentsCap := 30
+	if summary { openIntentsCap = 5 }
 	fr, _ := t.ts.Frontier(openIntentsCap) // priority DESC, id ASC —— 优先级最高的前 N 条；真实总数见 frontier_open
 	out["open_intents"] = compactIntents(fr, parentsOf, yieldsOf)
 	all, _ := t.ts.ListByKind(db.KindIntent, 300)
@@ -449,7 +466,8 @@ func (t *ToolSet) graphOverviewData() map[string]any {
 	// 让 planner 每轮判目标时一眼看到最近确认的漏洞；全量/更早的用 list_findings 取。
 	// 每条只留 {id, summary, from_intent?}：from_intent 是产生本漏洞的意图。
 	// evidence/assets/vulnclass/severity/state 等仍可用 list_findings / node_detail(id) 取。
-	const findingListCap = 10
+	findingListCap := 3
+	if !summary { findingListCap = 10 }
 	findingList := make([]map[string]any, 0, findingListCap)
 	for _, n := range vulnNodes {
 		if len(findingList) >= findingListCap {
@@ -467,7 +485,8 @@ func (t *ToolSet) graphOverviewData() map[string]any {
 	// recent_facts：非折叠事实里最新的一窗（≤N，factNodes 按 id 降序即最新在前）。已折进
 	// digest 且仍冷的（hidden）走 cold_digests，不在此重复。每条 {id, summary, from_intent?,
 	// confidence?}；evidence 等详情用 node_detail(id)。更早的用 list_facts 翻。
-	const recentFactsCap = 20
+	recentFactsCap := 5
+	if !summary { recentFactsCap = 20 }
 	recentFacts := make([]map[string]any, 0, recentFactsCap)
 	for _, n := range factNodes {
 		if len(recentFacts) >= recentFactsCap {
@@ -493,14 +512,16 @@ func (t *ToolSet) graphOverviewData() map[string]any {
 	out["recent_facts"] = recentFacts
 	// recent_done_intents：非折叠的已结束意图里最新的一窗（≤N，recentDone 已按 id 降序）。
 	// 更早的看 done_intents_total 计数 + node_detail(id)。
-	const recentDoneCap = 12
+	recentDoneCap := 3
+	if !summary { recentDoneCap = 12 }
 	if len(recentDone) > recentDoneCap {
 		recentDone = recentDone[:recentDoneCap]
 	}
 	out["recent_done_intents"] = compactIntents(recentDone, parentsOf, yieldsOf)
 	// cold-digest §6.1: 折叠冷区的 digest body，按最新成员时间降序取前 N；被截的更旧 digest
 	// 只给裸 id（仍可 expand_digest 展开），避免冷区唯一出口被无限拉长。
-	const coldDigestsCap = 15
+	coldDigestsCap := 3
+	if !summary { coldDigestsCap = 15 }
 	if cds, more := coldDigestsRecent(t.ts, coldDigestsCap); len(cds) > 0 {
 		out["cold_digests"] = cds // [{id, body, member_count}] —— 直接读 body (§6.1)
 		if len(more) > 0 {
@@ -510,6 +531,9 @@ func (t *ToolSet) graphOverviewData() map[string]any {
 	// the original task (root) so the planner always has it, not just the
 	// decomposed goals.
 	if description, goal, err := t.ts.Root(); err == nil {
+		if summary && len(goal) > 150 {
+			goal = goal[:150] + "... (truncated)"
+		}
 		out["task"] = map[string]any{"description": description, "goal": goal}
 	}
 	// Direct source tasks are a live, read-only blackboard view. Keep their
