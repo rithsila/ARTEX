@@ -84,14 +84,27 @@ func chatWorkDirSpec(workDir string) string {
 // chatSystem renders the DB-managed prompt body for agentKey. Custom agents have
 // no per-key in-code default, so DefaultAssistantPrompt is the render fallback.
 func chatSystem(agentKey, dataDir, workDir string) string {
-	return renderSystem(agentKey, DefaultAssistantPrompt, chatVars{DataDir: dataDir, Now: nowStr()}) + chatWorkDirSpec(workDir)
+	// Goal is referenced by the task-agent prompts (planner, mainagent). A chat
+	// session has no task attached, so supply a placeholder: without the field
+	// the template render fails and the whole system prompt silently falls back
+	// to DefaultAssistantPrompt.
+	vars := chatVars{
+		DataDir: dataDir,
+		Now:     nowStr(),
+		Goal:    "(none — interactive chat session, no task attached)",
+	}
+	return renderSystem(agentKey, DefaultAssistantPrompt, vars) + chatWorkDirSpec(workDir)
 }
 
 // chatVars carries the runtime variables a custom agent's prompt may reference.
 // DataDir (server data root) + Now (server wall-clock, refreshed each turn) are the
 // universal ones; any other {{.X}} fails to render and falls back to
 // DefaultAssistantPrompt.
-type chatVars struct{ DataDir, Now string }
+type chatVars struct {
+	DataDir string
+	Now     string
+	Goal    string
+}
 
 // Chat runs ONE turn of a conversation with the agent identified by agentKey,
 // resuming prior history keyed by sessionID. maxTurns is the per-turn agent step
