@@ -40,13 +40,16 @@ func meterSkillTool(t actool.CoreTool, pg *db.DB, reg *skill.Registry, agentKey 
 }
 
 func (m *meteredSkill) Call(ctx context.Context, input json.RawMessage, tc *actool.ToolContext) (actool.Result, error) {
-	m.record(input)
-	return m.CoreTool.Call(ctx, input, tc)
+	res, err := m.CoreTool.Call(ctx, input, tc)
+	m.record(input, res)
+	return res, err
 }
 
 // record appends the ledger row. Best-effort by design: a metering failure must
 // never turn into a failed skill invocation, so every error path just logs.
-func (m *meteredSkill) record(input json.RawMessage) {
+// Recording happens after the call completes so out_len can be measured from the
+// result; a miss (unknown skill) returns an error result whose text still counts.
+func (m *meteredSkill) record(input json.RawMessage, res actool.Result) {
 	var in struct {
 		Name string `json:"name"`
 		Args string `json:"args"`
@@ -80,6 +83,7 @@ func (m *meteredSkill) record(input json.RawMessage) {
 		IntentID:      m.ri.IntentID,
 		SessionID:     m.ri.SessionID,
 		ArgsLen:       len(in.Args),
+		OutLen:        meteredResultLen(res),
 		Found:         found,
 	})
 	if err != nil {

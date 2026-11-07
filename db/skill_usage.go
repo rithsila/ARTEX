@@ -22,6 +22,7 @@ type SkillUsage struct {
 	IntentID      int64  `json:"intent_id"`      // worker's intent node; 0 for planner/mainagent/chat
 	SessionID     string `json:"session_id"`     // chat conversation id; empty for task runs
 	ArgsLen       int    `json:"args_len"`
+	OutLen        int    `json:"out_len"` // tool_result bytes; 0 for misses and pre-out_len rows
 	Found         bool   `json:"found"` // false = the model named a skill that does not exist
 }
 
@@ -29,10 +30,10 @@ type SkillUsage struct {
 // error (a lost metering row must never break a skill invocation).
 func (d *DB) InsertSkillUsage(u *SkillUsage) error {
 	_, err := d.Exec(`
-INSERT INTO skill_usage(skill, agent_key, task_id, exploration_id, intent_id, session_id, args_len, found)
-VALUES ($1, NULLIF($2,''), $3, $4, $5, NULLIF($6,''), $7, $8)`,
+INSERT INTO skill_usage(skill, agent_key, task_id, exploration_id, intent_id, session_id, args_len, out_len, found)
+VALUES ($1, NULLIF($2,''), $3, $4, $5, NULLIF($6,''), $7, $8, $9)`,
 		u.Skill, u.AgentKey, nullIfZero(u.TaskID), nullIfZero(u.ExplorationID),
-		nullIfZero(u.IntentID), u.SessionID, u.ArgsLen, u.Found)
+		nullIfZero(u.IntentID), u.SessionID, u.ArgsLen, u.OutLen, u.Found)
 	return err
 }
 
@@ -50,6 +51,9 @@ type SkillStat struct {
 	Tasks    int        `json:"tasks"`     // distinct tasks that loaded it (chat runs excluded)
 	Agents   []string   `json:"agents"`    // agent keys that loaded it, most-used first
 	LastUsed *time.Time `json:"last_used"` // nil when never called
+	ArgsAvg  int        `json:"args_avg"`  // average caller-args size in bytes
+	OutAvg   int        `json:"out_avg"`   // average tool_result size in bytes
+	OutSum   int64      `json:"out_sum"`   // total tool_result bytes — the token-hog ranking key
 }
 
 // SkillStats aggregates the whole ledger grouped by skill, most-used first. Skills
@@ -63,7 +67,10 @@ func (d *DB) SkillStats() ([]SkillStat, error) {
 SELECT skill, COUNT(*) AS calls,
        COUNT(DISTINCT task_id) AS tasks,
        COALESCE(STRING_AGG(DISTINCT agent_key, ','), '') AS agents,
-       MAX(ts) AS last_used
+       MAX(ts) AS last_used,
+       COALESCE(AVG(args_len), 0)::int AS args_avg,
+       COALESCE(AVG(out_len), 0)::int  AS out_avg,
+       COALESCE(SUM(out_len), 0)::bigint AS out_sum
 FROM skill_usage
 WHERE found
 GROUP BY skill
@@ -77,7 +84,7 @@ ORDER BY COUNT(*) DESC, skill`)
 		var s SkillStat
 		var agents string
 		var lastUsed sql.NullTime
-		if err := rows.Scan(&s.Skill, &s.Calls, &s.Tasks, &agents, &lastUsed); err != nil {
+		if err := rows.Scan(&s.Skill, &s.Calls, &s.Tasks, &agents, &lastUsed, &s.ArgsAvg, &s.OutAvg, &s.OutSum); err != nil {
 			return nil, err
 		}
 		s.Agents = []string{}

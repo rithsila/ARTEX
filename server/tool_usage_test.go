@@ -50,6 +50,30 @@ func TestMeterToolRecordsAttributionAndDelegates(t *testing.T) {
 		got.ExplorationID != 8 || got.IntentID != 9 || got.SessionID != "session-1" {
 		t.Fatalf("unexpected attribution: %+v", got)
 	}
+	if got.OutLen != 0 {
+		t.Fatalf("empty result out_len: want 0, got %d", got.OutLen)
+	}
+}
+
+func TestMeterToolRecordsOutLenFromResultText(t *testing.T) {
+	base := actool.Build(actool.Spec{
+		Name: "list_facts",
+		Run: func(context.Context, json.RawMessage, *actool.ToolContext) (actool.Result, error) {
+			return actool.Text("hello world"), nil
+		},
+	})
+	recorder := &recordingToolUsage{}
+	wrapped := meterTool(base, recorder, "list_facts", "worker", agent.RunInfo{})
+
+	if _, err := wrapped.Call(context.Background(), json.RawMessage(`{}`), nil); err != nil {
+		t.Fatal(err)
+	}
+	if len(recorder.rows) != 1 {
+		t.Fatalf("usage rows: want 1, got %d", len(recorder.rows))
+	}
+	if want := len("hello world"); recorder.rows[0].OutLen != want {
+		t.Fatalf("out_len: want %d, got %d", want, recorder.rows[0].OutLen)
+	}
 }
 
 func TestMeterToolFailureDoesNotBreakInvocation(t *testing.T) {

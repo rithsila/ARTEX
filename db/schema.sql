@@ -907,12 +907,16 @@ CREATE TABLE IF NOT EXISTS skill_usage (
     intent_id      BIGINT,
     session_id     TEXT,
     args_len       INTEGER NOT NULL DEFAULT 0,
+    out_len        INTEGER NOT NULL DEFAULT 0,
     -- false = 模型点名了一个不存在的 skill(未命中)。这类行同样保留：它反映"想用但没有"
     -- 的缺口，是补 skill 的依据。
     found          BOOLEAN NOT NULL DEFAULT true
 );
 CREATE INDEX IF NOT EXISTS idx_skill_usage_skill ON skill_usage(skill, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_skill_usage_task  ON skill_usage(task_id);
+-- out_len: Skill 调用返回的 tool_result 字节数（不含 Extra 注入的技能说明），
+-- 与 args_len 相对，用于定位最耗 context 的技能。存量库补列，新库走 CREATE。
+ALTER TABLE skill_usage ADD COLUMN IF NOT EXISTS out_len INTEGER NOT NULL DEFAULT 0;
 
 -- 工具调用账本（见 db/tool_usage.go）。一次实际 CoreTool.Call 一行，只记归属维度，
 -- 不保存工具参数或返回内容。刻意不设外键，任务、会话或自定义工具删除后仍保留统计。
@@ -924,10 +928,14 @@ CREATE TABLE IF NOT EXISTS tool_usage (
     task_id        BIGINT,
     exploration_id BIGINT,
     intent_id      BIGINT,
-    session_id     TEXT
+    session_id     TEXT,
+    out_len        INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_tool_usage_tool ON tool_usage(tool_key, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_tool_usage_task ON tool_usage(task_id);
+-- out_len: 工具调用返回的 tool_result 字节数，与 skill_usage.out_len 同理，
+-- 是"按输出体积排序找 token 大户"的依据。存量库补列，新库走 CREATE。
+ALTER TABLE tool_usage ADD COLUMN IF NOT EXISTS out_len INTEGER NOT NULL DEFAULT 0;
 
 -- =====================================================================
 -- H. 内置工具目录
