@@ -1,76 +1,66 @@
-// TEMPORARY: offline build fallback — uses local Geist fonts instead of Google Fonts.
-// Restore registry.ts.bak after build.
+// Self-hosted latin subsets (OFL-1.1, Fontsource). Offline builds do not call Google.
 import localFont from "next/font/local";
 
 import { GeistPixelSquare } from "geist/font/pixel";
 
+const fontOpts = { display: "swap", adjustFontFallback: false, weight: "100 900" } as const;
+
 const geist = localFont({
   src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
   variable: "--font-geist",
-});
-const inter = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-inter",
-});
-const notoSans = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-noto-sans",
-});
-const roboto = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-roboto",
-});
-const outfit = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-outfit",
-});
-const dmSans = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-dm-sans",
-});
-const nunitoSans = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-nunito-sans",
-});
-const figtree = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-figtree",
-});
-const raleway = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-raleway",
-});
-const publicSans = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-public-sans",
-});
-const notoSerif = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-noto-serif",
-});
-const robotoSlab = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-roboto-slab",
-});
-const merriweather = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-merriweather",
-});
-const lora = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-lora",
-});
-const playfairDisplay = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
-  variable: "--font-playfair-display",
+  ...fontOpts,
 });
 const geistMono = localFont({
   src: "../../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
+  ...fontOpts,
 });
+const inter = localFont({ src: "./files/inter-latin-wght-normal.woff2", variable: "--font-inter", ...fontOpts });
+const notoSans = localFont({
+  src: "./files/noto-sans-latin-wght-normal.woff2",
+  variable: "--font-noto-sans",
+  ...fontOpts,
+});
+const nunitoSans = localFont({
+  src: "./files/nunito-sans-latin-wght-normal.woff2",
+  variable: "--font-nunito-sans",
+  ...fontOpts,
+});
+const figtree = localFont({ src: "./files/figtree-latin-wght-normal.woff2", variable: "--font-figtree", ...fontOpts });
+const roboto = localFont({ src: "./files/roboto-latin-wght-normal.woff2", variable: "--font-roboto", ...fontOpts });
+const raleway = localFont({ src: "./files/raleway-latin-wght-normal.woff2", variable: "--font-raleway", ...fontOpts });
+const dmSans = localFont({ src: "./files/dm-sans-latin-wght-normal.woff2", variable: "--font-dm-sans", ...fontOpts });
+const publicSans = localFont({
+  src: "./files/public-sans-latin-wght-normal.woff2",
+  variable: "--font-public-sans",
+  ...fontOpts,
+});
+const outfit = localFont({ src: "./files/outfit-latin-wght-normal.woff2", variable: "--font-outfit", ...fontOpts });
 const jetBrainsMono = localFont({
-  src: "../../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
+  src: "./files/jetbrains-mono-latin-wght-normal.woff2",
   variable: "--font-jetbrains-mono",
+  ...fontOpts,
+});
+const notoSerif = localFont({
+  src: "./files/noto-serif-latin-wght-normal.woff2",
+  variable: "--font-noto-serif",
+  ...fontOpts,
+});
+const robotoSlab = localFont({
+  src: "./files/roboto-slab-latin-wght-normal.woff2",
+  variable: "--font-roboto-slab",
+  ...fontOpts,
+});
+const merriweather = localFont({
+  src: "./files/merriweather-latin-wght-normal.woff2",
+  variable: "--font-merriweather",
+  ...fontOpts,
+});
+const lora = localFont({ src: "./files/lora-latin-wght-normal.woff2", variable: "--font-lora", ...fontOpts });
+const playfairDisplay = localFont({
+  src: "./files/playfair-display-latin-wght-normal.woff2",
+  variable: "--font-playfair-display",
+  ...fontOpts,
 });
 
 export const fontRegistry = {

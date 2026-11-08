@@ -1,0 +1,4 @@
+These .woff2 files are latin subsets of SIL Open Font License 1.1 families,
+taken from Fontsource (Google Fonts). You can use, bundle, and redistribute them.
+You cannot sell the font files by themselves.
+Full license: https://openfontlicense.org

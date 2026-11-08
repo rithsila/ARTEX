@@ -74,7 +74,7 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
         className={cn(
           "[html[data-content-layout=centered]_&>*]:mx-auto",
           "[html[data-content-layout=centered]_&>*]:w-full",
-          "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
+          "[html[data-content-layout=centered]_&>*]:max-w-[calc(100%-8rem)]",
           "peer-data-[variant=inset]:border",
           "[--dashboard-header-height:--spacing(12)]",
           "min-w-0 overflow-x-hidden",

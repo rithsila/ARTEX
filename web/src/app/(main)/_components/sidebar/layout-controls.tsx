@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSidebar } from "@/components/ui/sidebar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { type FontKey, fontOptions } from "@/lib/fonts/registry";
 import type { ContentLayout, NavbarStyle, SidebarCollapsible, SidebarVariant } from "@/lib/preferences/layout";
@@ -17,12 +18,22 @@ import {
   applySidebarVariant,
 } from "@/lib/preferences/layout-utils";
 import { PREFERENCE_DEFAULTS } from "@/lib/preferences/preferences-config";
+import { shouldKeepPreferencesOpen } from "@/lib/preferences/preferences-menu";
 import { persistPreference } from "@/lib/preferences/preferences-storage";
 import { THEME_PRESET_OPTIONS, type ThemeMode, type ThemePreset } from "@/lib/preferences/theme";
 import { applyThemePreset } from "@/lib/preferences/theme-utils";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
+function keepPreferencesOpen(event: {
+  target: EventTarget | null;
+  preventDefault: () => void;
+  detail?: { originalEvent?: { target: EventTarget | null } };
+}) {
+  if (shouldKeepPreferencesOpen(event)) event.preventDefault();
+}
+
 export function LayoutControls() {
+  const { isMobile, setOpen } = useSidebar();
   const themeMode = usePreferencesStore((s) => s.themeMode);
   const resolvedThemeMode = usePreferencesStore((s) => s.resolvedThemeMode);
   const setThemeMode = usePreferencesStore((s) => s.setThemeMode);
@@ -77,6 +88,8 @@ export function LayoutControls() {
     setSidebarCollapsible(value);
     applySidebarCollapsible(value);
     void persistPreference("sidebar_collapsible", value);
+    // Icon vs OffCanvas only shows while the sidebar is collapsed.
+    if (!isMobile) setOpen(false);
   };
 
   const onFontChange = (value: FontKey | "") => {
@@ -103,7 +116,13 @@ export function LayoutControls() {
           <Settings />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end">
+      <PopoverContent
+        align="end"
+        className="max-h-[70vh] overflow-y-auto"
+        onInteractOutside={keepPreferencesOpen}
+        onPointerDownOutside={keepPreferencesOpen}
+        onFocusOutside={keepPreferencesOpen}
+      >
         <div className="flex flex-col gap-5">
           <div className="space-y-1.5">
             <h4 className="font-medium text-sm leading-none">Preferences</h4>
@@ -116,7 +135,7 @@ export function LayoutControls() {
                 <SelectTrigger size="sm" className="w-full text-xs">
                   <SelectValue placeholder="Preset" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[80]">
                   <SelectGroup>
                     {THEME_PRESET_OPTIONS.map((preset) => (
                       <SelectItem key={preset.value} className="text-xs" value={preset.value}>
@@ -141,7 +160,7 @@ export function LayoutControls() {
                 <SelectTrigger size="sm" className="w-full text-xs">
                   <SelectValue placeholder="Select font" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[80]">
                   <SelectGroup>
                     {fontOptions.map((font) => (
                       <SelectItem key={font.key} className="text-xs" value={font.key}>
