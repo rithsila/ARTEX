@@ -86,12 +86,36 @@ func wireAgentAugment(pg *db.DB, skillDir string, hostTools func() ([]actool.Cor
 				cl, err := connectMCP(ctx, m)
 				if err != nil {
 					log.Printf("[mcp] %s connection failed: %v", m.Name, err)
+					// Telemetry: write diagnostic fact to blackboard if task context available
+					ri := agent.RunInfoFrom(ctx)
+					if ri.TaskID > 0 {
+						if t, err := pg.GetTask(ri.TaskID); err == nil && t != nil {
+							_, _ = pg.Exploration(t.ExplorationID).AddNode(db.KindFact, map[string]any{
+								"summary":    "MCP server connection failed",
+								"detail":     "Connection to MCP server " + m.Name + " failed: " + err.Error() + ". Its tools are unavailable.",
+								"evidence":   "connection refused/timeout",
+								"confidence": "observed",
+							}, 5, "confirmed", "system", nil)
+						}
+					}
 					continue
 				}
 				closers = append(closers, cl)
 				ts, err := cl.Tools(ctx)
 				if err != nil {
 					log.Printf("[mcp] %s tools/list failed: %v", m.Name, err)
+					// Telemetry: write diagnostic fact to blackboard if task context available
+					ri := agent.RunInfoFrom(ctx)
+					if ri.TaskID > 0 {
+						if t, err := pg.GetTask(ri.TaskID); err == nil && t != nil {
+							_, _ = pg.Exploration(t.ExplorationID).AddNode(db.KindFact, map[string]any{
+								"summary":    "MCP server tools discovery failed",
+								"detail":     "Failed to list tools from MCP server " + m.Name + ": " + err.Error() + ". Its tools are unavailable.",
+								"evidence":   "tools/list error",
+								"confidence": "observed",
+							}, 5, "confirmed", "system", nil)
+						}
+					}
 					continue
 				}
 				for _, t := range ts {
