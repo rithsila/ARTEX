@@ -101,9 +101,8 @@ jobs:
   docker:
     needs: binaries
     runs-on: ubuntu-latest
-    if: "${{ env.DOCKERHUB_TOKEN != '' }}"
-    env:
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    # secrets is valid in job if; env is not, and a bad if stops the whole release.
+    if: ${{ secrets.DOCKERHUB_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4 # 取 Dockerfile 与 skills/
       - uses: actions/download-artifact@v4
