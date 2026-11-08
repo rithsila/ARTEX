@@ -1,66 +1,127 @@
 // Self-hosted latin subsets (OFL-1.1, Fontsource). Offline builds do not call Google.
+// next/font rejects object spreads, so every option is written out.
 import localFont from "next/font/local";
 
 import { GeistPixelSquare } from "geist/font/pixel";
 
-const fontOpts = { display: "swap", adjustFontFallback: false, weight: "100 900" } as const;
-
 const geist = localFont({
   src: "../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2",
   variable: "--font-geist",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
 const geistMono = localFont({
   src: "../../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2",
   variable: "--font-geist-mono",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
-const inter = localFont({ src: "./files/inter-latin-wght-normal.woff2", variable: "--font-inter", ...fontOpts });
+const inter = localFont({
+  src: "./files/inter-latin-wght-normal.woff2",
+  variable: "--font-inter",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
 const notoSans = localFont({
   src: "./files/noto-sans-latin-wght-normal.woff2",
   variable: "--font-noto-sans",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
 const nunitoSans = localFont({
   src: "./files/nunito-sans-latin-wght-normal.woff2",
   variable: "--font-nunito-sans",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
-const figtree = localFont({ src: "./files/figtree-latin-wght-normal.woff2", variable: "--font-figtree", ...fontOpts });
-const roboto = localFont({ src: "./files/roboto-latin-wght-normal.woff2", variable: "--font-roboto", ...fontOpts });
-const raleway = localFont({ src: "./files/raleway-latin-wght-normal.woff2", variable: "--font-raleway", ...fontOpts });
-const dmSans = localFont({ src: "./files/dm-sans-latin-wght-normal.woff2", variable: "--font-dm-sans", ...fontOpts });
+const figtree = localFont({
+  src: "./files/figtree-latin-wght-normal.woff2",
+  variable: "--font-figtree",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
+const roboto = localFont({
+  src: "./files/roboto-latin-wght-normal.woff2",
+  variable: "--font-roboto",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
+const raleway = localFont({
+  src: "./files/raleway-latin-wght-normal.woff2",
+  variable: "--font-raleway",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
+const dmSans = localFont({
+  src: "./files/dm-sans-latin-wght-normal.woff2",
+  variable: "--font-dm-sans",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
 const publicSans = localFont({
   src: "./files/public-sans-latin-wght-normal.woff2",
   variable: "--font-public-sans",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
-const outfit = localFont({ src: "./files/outfit-latin-wght-normal.woff2", variable: "--font-outfit", ...fontOpts });
+const outfit = localFont({
+  src: "./files/outfit-latin-wght-normal.woff2",
+  variable: "--font-outfit",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
 const jetBrainsMono = localFont({
   src: "./files/jetbrains-mono-latin-wght-normal.woff2",
   variable: "--font-jetbrains-mono",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
 const notoSerif = localFont({
   src: "./files/noto-serif-latin-wght-normal.woff2",
   variable: "--font-noto-serif",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
 const robotoSlab = localFont({
   src: "./files/roboto-slab-latin-wght-normal.woff2",
   variable: "--font-roboto-slab",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
 const merriweather = localFont({
   src: "./files/merriweather-latin-wght-normal.woff2",
   variable: "--font-merriweather",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "400",
 });
-const lora = localFont({ src: "./files/lora-latin-wght-normal.woff2", variable: "--font-lora", ...fontOpts });
+const lora = localFont({
+  src: "./files/lora-latin-wght-normal.woff2",
+  variable: "--font-lora",
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
+});
 const playfairDisplay = localFont({
   src: "./files/playfair-display-latin-wght-normal.woff2",
   variable: "--font-playfair-display",
-  ...fontOpts,
+  display: "swap",
+  adjustFontFallback: false,
+  weight: "100 900",
 });
 
 export const fontRegistry = {

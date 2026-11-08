@@ -46,3 +46,9 @@ test("centered layout is narrower than the window on a normal laptop", () => {
   assert.match(layout, /max-w-\[calc\(100%-8rem\)\]/);
   assert.doesNotMatch(layout, /max-w-screen-2xl/);
 });
+
+test("next font loader can read every localFont call", () => {
+  const registry = readFileSync(new URL("../fonts/registry.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(registry, /\.\.\.fontOpts/);
+  assert.match(registry, /display: "swap"/);
+});
