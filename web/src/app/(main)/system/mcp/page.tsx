@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import type { Agent, MCPServer, MCPTool } from "@/lib/types";
+import type { Agent, MCPHealth, MCPServer, MCPTool } from "@/lib/types";
 
 type Transport = "stdio" | "http" | "sse";
 type FormState = {
@@ -28,6 +28,34 @@ type FormState = {
   env: string;
   insecure: boolean;
 };
+function mcpStatusBadge(item: MCPHealth | undefined, ready: boolean) {
+  if (!ready) {
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        Checking
+      </Badge>
+    );
+  }
+  if (item?.status === "connected") {
+    return <Badge className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400">Connected</Badge>;
+  }
+  if (item?.status === "off") {
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        Off
+      </Badge>
+    );
+  }
+  if (item?.status === "disconnected") {
+    return <Badge variant="destructive">Disconnected</Badge>;
+  }
+  return (
+    <Badge variant="outline" className="text-muted-foreground">
+      Unknown
+    </Badge>
+  );
+}
+
 const emptyForm: FormState = {
   name: "",
   transport: "stdio",
@@ -42,6 +70,8 @@ export default function MCPPage() {
   const [servers, setServers] = React.useState<MCPServer[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [visibility, setVisibility] = React.useState<Record<number, string[]>>({});
+  const [health, setHealth] = React.useState<Record<number, MCPHealth>>({});
+  const [healthReady, setHealthReady] = React.useState(false);
 
   const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<MCPServer | null>(null); // null = add mode
@@ -53,6 +83,7 @@ export default function MCPPage() {
   const [refreshing, setRefreshing] = React.useState(false);
 
   const load = React.useCallback(() => {
+    setHealthReady(false);
     api
       .agents()
       .then(setAgents)
@@ -69,6 +100,15 @@ export default function MCPPage() {
         );
       })
       .catch(() => {});
+    api
+      .mcpHealth()
+      .then((items) => {
+        const next: Record<number, MCPHealth> = {};
+        for (const item of items) next[item.id] = item;
+        setHealth(next);
+      })
+      .catch(() => setHealth({}))
+      .finally(() => setHealthReady(true));
   }, []);
   React.useEffect(() => {
     load();
@@ -374,12 +414,13 @@ export default function MCPPage() {
             className="hover:border-primary/60 cursor-pointer gap-3 transition hover:shadow-sm"
           >
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <ServerIcon className="text-muted-foreground size-4 shrink-0" />
                 <CardTitle className="truncate text-base">{s.name}</CardTitle>
                 <Badge variant="outline" className="uppercase">
                   {s.transport}
                 </Badge>
+                {mcpStatusBadge(health[s.id], healthReady)}
                 <div className="ml-auto flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <Switch checked={s.enabled} onCheckedChange={() => toggleEnabled(s)} aria-label="Enable" />
                   <Button size="icon" variant="outline" aria-label="Delete" onClick={() => removeServer(s)}>
@@ -392,6 +433,11 @@ export default function MCPPage() {
               <p className="text-muted-foreground text-sm">
                 {s.tools && s.tools.length > 0 ? `${s.tools.length} tools` : "No tools discovered"}
               </p>
+              {health[s.id]?.status === "disconnected" && health[s.id]?.error ? (
+                <p className="truncate text-destructive text-xs" title={health[s.id].error}>
+                  {health[s.id].error}
+                </p>
+              ) : null}
               <div className="grid gap-2" onClick={(e) => e.stopPropagation()}>
                 <span className="text-muted-foreground text-xs">Visibility (per Agent)</span>
                 <div className="flex flex-wrap gap-x-4 gap-y-2">

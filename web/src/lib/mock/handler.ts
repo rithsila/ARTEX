@@ -2389,6 +2389,13 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/tools/custom/test") return { output: "(demo) Sample tool execution output.", is_error: false };
 
   // ── mcp ──
+  if (path === "/mcp/health" && m === "GET")
+    return {
+      servers: [
+        { id: 1, status: "connected" },
+        { id: 2, status: "disconnected", error: "connection refused" },
+      ],
+    };
   if (path === "/mcp" && m === "GET") return { servers: D.mcpServers };
   if (path === "/mcp" && m === "POST") return { id: 3 };
   if (seg[0] === "mcp" && seg[2] === "tools") return { tools: D.mcpToolsById[Number(seg[1])] ?? [] };

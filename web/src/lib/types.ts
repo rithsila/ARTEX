@@ -1186,6 +1186,12 @@ export interface MCPTool {
   description: string;
 }
 
+export interface MCPHealth {
+  id: number;
+  status: "connected" | "disconnected" | "off";
+  error?: string;
+}
+
 // ---- Skills ----
 // Fields align with the agentskills.io open specification.
 // description covers both "what the skill does" and "when to use it".
