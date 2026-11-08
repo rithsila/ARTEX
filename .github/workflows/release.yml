@@ -98,28 +98,46 @@ jobs:
           generate_release_notes: true
 
   # ④ 多架构镜像 → 推 Docker Hub（仅在配置了 DOCKERHUB_TOKEN 时执行）
+  # Job-level if cannot read secrets or env. A bad if stops the whole release
+  # before any job starts, so the token check lives in a step instead.
   docker:
     needs: binaries
     runs-on: ubuntu-latest
-    # secrets is valid in job if; env is not, and a bad if stops the whole release.
-    if: ${{ secrets.DOCKERHUB_TOKEN != '' }}
     steps:
+      - name: Check Docker Hub token
+        id: gate
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -n "$DOCKERHUB_TOKEN" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "DOCKERHUB_TOKEN is unset; skipping image push."
+          fi
       - uses: actions/checkout@v4 # 取 Dockerfile 与 skills/
+        if: steps.gate.outputs.run == 'true'
       - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.run == 'true'
         with:
           name: bin-linux-amd64
           path: dist/amd64
       - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.run == 'true'
         with:
           name: bin-linux-arm64
           path: dist/arm64
       - uses: docker/setup-qemu-action@v3
+        if: steps.gate.outputs.run == 'true'
       - uses: docker/setup-buildx-action@v3
+        if: steps.gate.outputs.run == 'true'
       - uses: docker/login-action@v3
+        if: steps.gate.outputs.run == 'true'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME || 'rithsila' }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - uses: docker/metadata-action@v5
+        if: steps.gate.outputs.run == 'true'
         id: meta
         with:
           images: rithsila/artex
@@ -127,6 +145,7 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest
       - uses: docker/build-push-action@v6
+        if: steps.gate.outputs.run == 'true'
         with:
           context: .
           platforms: linux/amd64,linux/arm64
