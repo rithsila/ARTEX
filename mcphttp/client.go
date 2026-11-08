@@ -32,6 +32,12 @@ import (
 const protocolVersion = "2025-06-18"
 const legacySSEProtocolVersion = "2024-11-05"
 
+// streamableHTTPTimeout is the whole-call cap for Streamable HTTP MCP.
+// It must cover the worker run budget (agents.run_seconds default 1200).
+// A shorter cap kills a still-running tool call with
+// "Client.Timeout exceeded while awaiting headers".
+const streamableHTTPTimeout = 20 * time.Minute
+
 // endpointOrigin rejects ambiguous or credential-bearing URLs and normalizes
 // default ports so explicit :80/:443 remain equivalent to their implicit form.
 func endpointOrigin(u *url.URL) (string, error) {
@@ -157,7 +163,7 @@ func New(ctx context.Context, server, url string, headers map[string]string, ins
 	if err != nil {
 		return nil, err
 	}
-	hc := &http.Client{Timeout: 120 * time.Second}
+	hc := &http.Client{Timeout: streamableHTTPTimeout}
 	if err := restrictOrigin(hc, url); err != nil {
 		return nil, err
 	}
