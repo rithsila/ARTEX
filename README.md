@@ -13,38 +13,6 @@ ARTEX is a multi-agent system for autonomous penetration testing in an isolated 
 
 ---
 
-## Screenshots
-
-| Dashboard (Overview / Token Consumption / Activity Feed) | Task List |
-| :---: | :---: |
-| ![Dashboard](screenshots/dashboard.png) | ![Tasks](screenshots/tasks.png) |
-
-| Task · Execution Process (Sessions / Tool Invocations) | Exploration Chain |
-| :---: | :---: |
-| ![Execution Process](screenshots/sessions.png) | ![Exploration Chain](screenshots/graph.png) |
-
-| Findings | Assets |
-| :---: | :---: |
-| ![Findings](screenshots/findings.png) | ![Assets](screenshots/assets.png) |
-
-| Asset Coverage Map (Force-Directed Layout · Tested Highlight · Collapsible Nodes) |
-| :---: |
-| ![Asset Coverage Map](screenshots/assets_test.png) |
-
-| Traffic Recording | Human-in-the-Loop (HITL) Chat |
-| :---: | :---: |
-| ![Traffic](screenshots/traffic.png) | ![Chat](screenshots/chat.png) |
-
-| Agent Management | LLM Configuration |
-| :---: | :---: |
-| ![Agent](screenshots/agents.png) | ![LLM](screenshots/llm.png) |
-
-| Intercept Approvals | Backend Logs |
-| :---: | :---: |
-| ![Intercept](screenshots/intercept.png) | ![Logs](screenshots/logs.png) |
-
----
-
 ## Approval Record Details
 
 Global "Approval Records", in-task "Intercept Approvals", and approval cards within chat sessions all support expandable detail inspection. The display structure references [AegisHook's approval detail component](https://github.com/RuoJi6/AegisHook/blob/main/web/src/components/CallDetail.vue), maintaining ARTEX native components and styling:
