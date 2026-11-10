@@ -737,7 +737,7 @@ func (s *Server) seedReporterAgent() {
 		log.Printf("[reporter] create agent failed: %v", err)
 		return
 	}
-	if err := s.m.pg.SeedPromptIfEmpty(a.ID, agent.ReporterDefaultPrompt); err != nil {
+	if err := s.m.pg.SeedPromptIfEmpty(a.ID, agent.BuiltinPromptSeeds()["reporter"]); err != nil {
 		log.Printf("[reporter] seed prompt failed: %v", err)
 	}
 	if err := s.m.pg.SetAgentTriggerBehavior("reporter", "parallel", "none", 5); err != nil {

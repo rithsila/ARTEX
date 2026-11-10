@@ -36,6 +36,11 @@ func nowStr() string { return time.Now().Format("2006-01-02 15:04:05 MST") }
 // half-rendered prompt. Callers append the code-owned tail (trafficTool / 中间产物
 // 输出规约) AFTER this, so those can't be edited away via the DB body.
 func renderSystem(agentKey, def string, vars any) string {
+	// Compose only a recognized built-in body. A valid stored template wins
+	// unchanged, even when it asks for Chinese output.
+	if raw, ok := builtinPromptBodies()[agentKey]; ok && def == raw {
+		def = defaultEnglishOutput(def)
+	}
 	tmpl := def
 	if PromptOverride != nil {
 		if t, ok := PromptOverride(agentKey); ok && t != "" {

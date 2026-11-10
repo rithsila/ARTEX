@@ -86,14 +86,17 @@ func chatWorkDirSpec(workDir string) string {
 func chatSystem(agentKey, dataDir, workDir string) string {
 	// Goal is referenced by the task-agent prompts (planner, mainagent). A chat
 	// session has no task attached, so supply a placeholder: without the field
-	// the template render fails and the whole system prompt silently falls back
-	// to DefaultAssistantPrompt.
+	// the template render fails instead of retaining the selected role.
 	vars := chatVars{
 		DataDir: dataDir,
 		Now:     nowStr(),
 		Goal:    "(none — interactive chat session, no task attached)",
 	}
-	return renderSystem(agentKey, DefaultAssistantPrompt, vars) + chatWorkDirSpec(workDir)
+	def := DefaultAssistantPrompt
+	if body, ok := builtinPromptBodies()[agentKey]; ok {
+		def = body
+	}
+	return renderSystem(agentKey, def, vars) + chatWorkDirSpec(workDir)
 }
 
 // chatVars carries the runtime variables a custom agent's prompt may reference.

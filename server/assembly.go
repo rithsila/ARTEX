@@ -226,7 +226,6 @@ func seedPrompts(pg *db.DB) {
 			log.Printf("[prompts] seed %s failed: %v", key, err)
 		}
 	}
-	refreshEnglishPrompts(pg)
 	refreshEnglishToolCopy(pg)
 	refreshEnglishPromptNotes(pg)
 }
@@ -249,38 +248,6 @@ func refreshEnglishPromptNotes(pg *db.DB) {
 	}
 	if err := pg.SetSetting(flag, "done"); err != nil {
 		log.Printf("[prompts] note refresh flag failed: %v", err)
-	}
-}
-
-// refreshEnglishPrompts replaces still-Chinese built-in prompt bodies once.
-// A prompt that no longer contains the old Chinese openers is left alone.
-func refreshEnglishPrompts(pg *db.DB) {
-	const flag = "agent_prompt_en_v1"
-	if v, _, _ := pg.GetSetting(flag); v == "done" {
-		return
-	}
-	seeds := agent.BuiltinPromptSeeds()
-	seeds["reporter"] = agent.ReporterDefaultPrompt
-	seeds["retester"] = agent.RetesterDefaultPrompt
-	for key, tmpl := range seeds {
-		a, err := pg.GetAgentByKey(key)
-		if err != nil || a == nil {
-			continue
-		}
-		cur, err := pg.CurrentPrompt(a.ID)
-		if err != nil {
-			log.Printf("[prompts] read %s failed: %v", key, err)
-			continue
-		}
-		if cur == "" || (!strings.Contains(cur, "你是") && !strings.Contains(cur, "渗透")) {
-			continue
-		}
-		if _, err := pg.SavePrompt(a.ID, tmpl, "built-in default", "system"); err != nil {
-			log.Printf("[prompts] english refresh %s failed: %v", key, err)
-		}
-	}
-	if err := pg.SetSetting(flag, "done"); err != nil {
-		log.Printf("[prompts] english refresh flag failed: %v", err)
 	}
 }
 
