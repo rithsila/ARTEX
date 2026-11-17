@@ -631,7 +631,7 @@ function UserRow({
           </div>
         )}
         {text && (
-          <div className="min-w-0 max-w-full whitespace-pre-wrap rounded-lg rounded-tr-sm bg-primary px-3 py-1.5 text-sm text-primary-foreground [overflow-wrap:anywhere]">
+          <div className="min-w-0 max-w-full whitespace-pre-wrap rounded-lg rounded-tr-sm border border-primary/25 bg-primary/15 px-3 py-1.5 text-sm text-foreground [overflow-wrap:anywhere]">
             {text}
           </div>
         )}

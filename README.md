@@ -1,11 +1,9 @@
-<div align="center">
-
 # ARTEX
 
 AI autonomous penetration testing system. Multi-agent LLM, Go backend, Next.js frontend.
 
-[![Release](https://img.shields.io/github/v/release/rithsila/ARTEX)](https://github.com/rithsila/ARTEX/releases)
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+![Release](https://img.shields.io/github/v/release/rithsila/ARTEX)
+![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)
 
 </div>
 
@@ -44,7 +42,7 @@ The script will detect/install Docker automatically, then prompt you to choose b
 - **① Full Docker**: Enter a PostgreSQL password (or press Enter for a random one) → automatically writes `.env` → runs `docker compose up -d`.
 - **② Local Build**: Select database (connect existing or spin up via Docker) → generates `config.json` → compiles embedded single binary via `go` → launches application.
 
-Once installed, visit **http://localhost:8787** (initial setup at `/setup` to create administrator credentials).
+Once installed, visit [**http://localhost:8787**](http://localhost:8787) (initial setup at `/setup` to create administrator credentials).
 
 ### Method 2: Docker Compose (Recommended)
 
@@ -91,13 +89,13 @@ ARTEX_TARGETS=linux/amd64,windows/amd64 ./build.sh --release
 
 ---
 
-## Updates & Upgrades
+## Updates &amp; Upgrades
 
 > Upgrades update application binaries only, keeping data intact: PostgreSQL volume `pgdata`, `./data` (jwt.key / SQLite, etc.), and `./skills` are preserved. **Database migrations require no manual execution**—`artex` idempotently executes `schema.sql` (including `ADD COLUMN` / `CREATE INDEX IF NOT EXISTS`) on every startup ("restart to migrate"). Backing up `./data` and database before upgrading is still recommended.
 
 ### Method 1: Web UI One-Click Update (Recommended)
 
-On the **System Settings** page (Sidebar → "System Settings" → `/system/settings`), check and install new versions directly within the **Version & Update** card without SSH/server access.
+On the **System Settings** page (Sidebar → "System Settings" → `/system/settings`), check and install new versions directly within the **Version &amp; Update** card without SSH/server access.
 
 Clicking "Update": downloads the release package matching your platform → verifies against `SHA256SUMS` → performs smoke tests on the binary via `-h` → stages as `artex.new` → exits process, allowing `start.sh` / `start.bat` to replace the binary and relaunch. The page automatically refreshes once the new version is live.
 
@@ -280,14 +278,16 @@ flowchart TB
   MA -.-> EXT
 ```
 
-| Layer | Responsibility |
-| --- | --- |
-| **Frontend** | Static export via Next.js, embedded into single binary via `go:embed`; visualizes tasks, assets, exploration chains, coverage maps, and HITL chat |
-| **server** | `net/http` routing + JWT authentication + SSE; `Manager` controls lifecycle of tasks, engines, and DB stores |
-| **engine** | Per-task `plannerLoop` + N worker goroutines; handles Intent claiming, timeouts, pauses, and draining |
-| **agent** | goals / planner / worker / mainagent; `ToolSet` exposes the Dual-Graph as callable LLM tools |
-| **db** | PostgreSQL persistence for the Dual-Graph (via pgx); idempotent table schema migration on boot via `go:embed` |
-| **Supporting** | MITM traffic recording proxy, approval gate, async enrichment, MCP/skills/memory/reporting |
+
+| Layer          | Responsibility                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**   | Static export via Next.js, embedded into single binary via `go:embed`; visualizes tasks, assets, exploration chains, coverage maps, and HITL chat |
+| **server**     | `net/http` routing + JWT authentication + SSE; `Manager` controls lifecycle of tasks, engines, and DB stores                                      |
+| **engine**     | Per-task `plannerLoop` + N worker goroutines; handles Intent claiming, timeouts, pauses, and draining                                             |
+| **agent**      | goals / planner / worker / mainagent; `ToolSet` exposes the Dual-Graph as callable LLM tools                                                      |
+| **db**         | PostgreSQL persistence for the Dual-Graph (via pgx); idempotent table schema migration on boot via `go:embed`                                     |
+| **Supporting** | MITM traffic recording proxy, approval gate, async enrichment, MCP/skills/memory/reporting                                                        |
+
 
 ### Dual-Graph Architecture: Exploration Graph + Asset Graph
 
@@ -415,9 +415,9 @@ This repository actively maintains [Autumn-27/ARTEX](https://github.com/Autumn-2
 
 ## References
 
-https://github.com/oritera/Cairn
+[https://github.com/oritera/Cairn](https://github.com/oritera/Cairn)
 
-## License & Disclaimer
+## License &amp; Disclaimer
 
 ### Open Source License
 
@@ -441,7 +441,7 @@ This grants freedom to use, modify, and distribute this software, provided that 
 - Illegal intrusion, data theft, ransomware, denial-of-service, or any malicious or unlawful activity;
 - Any activity violating the applicable laws and regulations of your local jurisdiction.
 
-### Compliance & Liability
+### Compliance &amp; Liability
 
 Users are responsible for ensuring compliance with all local laws and regulations governing cybersecurity, data protection, and computer crime (in Mainland China, including but not limited to the *Cybersecurity Law*, *Data Security Law*, *Personal Information Protection Law*, and related judicial interpretations). **All legal liabilities and consequences resulting from the use of this tool rest entirely with the user.**
 
